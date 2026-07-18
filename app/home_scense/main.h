@@ -69,6 +69,7 @@ extern lv_obj_t *gamble_window;
  *===========================================================================*/
 extern bool    g_led_is_on;
 extern int32_t g_led_brightness;
+extern bool    g_blink_enabled;
 
 /*===========================================================================
  * Function declarations
@@ -86,6 +87,12 @@ void led_adapter_on(void);
 void led_adapter_off(void);
 void led_adapter_set_brightness(int32_t brightness);
 void led_adapter_diagnose(void);
+
+/* LED blink — lifecycle managed by main.c, paused/resumed by popups */
+void led_blink_start(void);
+void led_blink_stop(void);
+void led_blink_pause(void);
+void led_blink_resume(void);
 
 #ifdef CONFIG_LV_USE_NUTTX_LIBUV
 void lv_nuttx_uv_loop(uv_loop_t *loop, lv_nuttx_result_t *result);

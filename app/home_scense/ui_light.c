@@ -80,6 +80,9 @@ void create_light_control_window(void)
 {
     if (light_window) return;
 
+    /* Pause LED blink while user controls light manually */
+    led_blink_pause();
+
     lv_coord_t left = (SCREEN_WIDTH  - 240) / 2;
     lv_coord_t top  = (SCREEN_HEIGHT - 160) / 2;
 
@@ -120,9 +123,7 @@ void create_light_control_window(void)
     /* Switch */
     light_switch = lv_switch_create(light_window);
     lv_obj_align(light_switch, LV_ALIGN_TOP_LEFT, 30, 50);
-    bool led_state = false;
-    led_is_on(&led_state);
-    if (led_state) lv_obj_add_state(light_switch, LV_STATE_CHECKED);
+    if (g_blink_enabled) lv_obj_add_state(light_switch, LV_STATE_CHECKED);
     lv_obj_add_event_cb(light_switch, light_switch_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
 
     lv_obj_t *sw_label = lv_label_create(light_window);
@@ -154,6 +155,7 @@ void create_light_control_window(void)
 static void close_light_window_cb(lv_event_t *e)
 {
     (void)e;
+    bool was_on = light_switch && lv_obj_has_state(light_switch, LV_STATE_CHECKED);
     if (light_window) {
         lv_obj_del(light_window);
         light_window = brightness_slider = brightness_label = NULL;
@@ -163,14 +165,16 @@ static void close_light_window_cb(lv_event_t *e)
         lv_obj_del(gamble_window);
         gamble_window = NULL;
     }
+    /* Resume blink only if switch was left ON */
+    if (was_on) led_blink_resume();
 }
 
 static void light_switch_event_cb(lv_event_t *e)
 {
     if (lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED))
-        led_adapter_on();
+        led_blink_start();
     else
-        led_adapter_off();
+        led_blink_stop();
 }
 
 static void brightness_slider_event_cb(lv_event_t *e)

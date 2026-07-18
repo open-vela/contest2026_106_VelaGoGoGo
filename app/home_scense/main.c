@@ -12,6 +12,7 @@
 #include "main.h"
 #include "sensor.h"
 #include "led_control.h"
+#include "ui_emoji.h"
 
 /* Observer callbacks from ui_main.c */
 extern void time_observer_cb(lv_observer_t *, lv_subject_t *);
@@ -101,6 +102,13 @@ lv_obj_t *gamble_window;
 bool    g_led_is_on;
 int32_t g_led_brightness;
 
+/* --- LED blink state --- */
+static lv_timer_t *g_blink_timer = NULL;
+bool        g_blink_enabled = false;  /* master: switch ON → true */
+static bool        g_blink_paused  = false;  /* popup open → true */
+static bool        g_blink_high = true;      /* true→brightness 100, false→10 */
+static uint32_t    g_blink_color = 0xFF0000; /* current blink color (red) */
+
 /*-----------------------------------------------------------------------
  * Font loading
  *---------------------------------------------------------------------*/
@@ -167,6 +175,72 @@ int init_sensors(void)
     lv_timer_t *t = sensor_timer_create();
     if (!t) return -1;
     return 0;
+}
+
+/*-----------------------------------------------------------------------
+ * LED blink — 30ms timer toggles brightness 10↔100 for flicker effect
+ *---------------------------------------------------------------------*/
+static void led_blink_cb(lv_timer_t *timer)
+{
+    (void)timer;
+    if (!g_blink_enabled || g_blink_paused) return;
+    g_blink_high = !g_blink_high;
+    led_set_brightness(g_blink_high ? 100 : 10);
+}
+
+/* Called by ui_emoji when expression changes — only takes effect if blink is active */
+static void led_blink_on_emoji_change(uint32_t color)
+{
+    if (!g_blink_enabled || g_blink_paused) {
+        g_blink_color = color;   /* remember for when blink resumes */
+        return;
+    }
+    g_blink_color = color;
+    g_blink_high  = true;
+    led_set_color(color);
+    led_set_brightness(100);
+    if (!g_led_is_on) led_on();
+}
+
+/* Called when user toggles the Light switch ON */
+void led_blink_start(void)
+{
+    g_blink_enabled = true;
+    g_blink_high    = true;
+    g_blink_color   = emoji_get_current_color();
+    led_set_color(g_blink_color);
+    led_set_brightness(100);
+    led_on();
+    g_led_is_on = true;
+}
+
+/* Called when user toggles the Light switch OFF */
+void led_blink_stop(void)
+{
+    g_blink_enabled = false;
+    led_off();
+    g_led_is_on = false;
+}
+
+/* Popup opened — pause blinking so manual slider works */
+void led_blink_pause(void)
+{
+    g_blink_paused = true;
+    led_off();
+    g_led_is_on = false;
+}
+
+/* Popup closed — resume only if switch is still ON */
+void led_blink_resume(void)
+{
+    g_blink_paused = false;
+    if (g_blink_enabled) {
+        g_blink_high = true;
+        led_set_color(g_blink_color);
+        led_set_brightness(100);
+        led_on();
+        g_led_is_on = true;
+    }
 }
 
 /*-----------------------------------------------------------------------
@@ -239,13 +313,16 @@ int main(int argc, FAR char *argv[])
     if (init_sensors() != 0)
         LV_LOG_ERROR("Sensor init failed");
 
-    /* LED */
+    /* LED — init hardware only; blink starts when user toggles switch ON */
     led_adapter_init();
     led_adapter_diagnose();
-    /* Quick LED blink test */
-    led_adapter_on();
-    usleep(200000);
-    led_adapter_off();
+
+    /* Register: when emoji changes expression → LED changes color (if blink active) */
+    emoji_register_color_callback(led_blink_on_emoji_change);
+
+    /* 30ms blink timer — always running, gated by g_blink_enabled && !g_blink_paused */
+    g_blink_timer = lv_timer_create(led_blink_cb, 30, NULL);
+    lv_timer_set_repeat_count(g_blink_timer, -1);
 
     /* Time timer */
     lv_timer_t *tt = lv_timer_create(update_time_cb, 1000, NULL);
