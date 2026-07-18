@@ -9,7 +9,7 @@
   <include name="openvela.xml"/>
 
   <project path="contest2026_106_VelaGoGoGo" name="contest2026_106_VelaGoGoGo">
-    <linkfile src="app/hello_app" dest="packages/demos/contest2026_106_hello_app"/>
+    <linkfile src="app/home_scense" dest="packages/demos/contest2026_106_hello_app"/>
     <linkfile src="quickapp/hello_quickapp" dest="packages/apps/contest2026_106_hello_quickapp"/>
     <linkfile src="board/contest_board" dest="vendor/openvela/boards/contest2026_106_board"/>
   </project>

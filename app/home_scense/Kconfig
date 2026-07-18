@@ -1,0 +1,27 @@
+#
+# app/home_scense/Kconfig
+# Contest 2026 team 106 — home_scense application
+#
+
+config LVX_USE_DEMO_CONTEST2026_106_HELLO_APP
+	bool "Contest 2026 team 106 home_scense app"
+	default n
+	---help---
+		Enable the contest 2026 team 106 home_scense LVGL application.
+		Based on luncher_mini, with modular sensor / LED / UI architecture.
+
+if LVX_USE_DEMO_CONTEST2026_106_HELLO_APP
+
+config LVX_USE_DEMO_CONTEST2026_106_PROGNAME
+	string "Program name"
+	default "home_scense"
+
+config LVX_USE_DEMO_CONTEST2026_106_PRIORITY
+	int "Task priority"
+	default 100
+
+config LVX_USE_DEMO_CONTEST2026_106_STACKSIZE
+	int "Stack size"
+	default 102400
+
+endif
