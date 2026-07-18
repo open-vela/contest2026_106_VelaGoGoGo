@@ -1,11 +1,12 @@
 #
-# Contest 2026 team 000 board placeholder
+# Contest 2026 team 106 board configuration
+# Based on r528s3-gemini-s1 with DMIC support
 #
 
-if ARCH_BOARD_CONTEST2026_000_BOARD
+if ARCH_BOARD_CONTEST2026_106_BOARD
 
-config ARCH_BOARD_CONTEST2026_000_BOARD_TAG
+config ARCH_BOARD_CONTEST2026_106_BOARD_TAG
 	string "Board tag"
-	default "contest2026_000_board"
+	default "contest2026_106_board"
 
 endif

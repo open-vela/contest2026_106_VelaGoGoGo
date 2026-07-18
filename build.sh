@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Team 106 build & deploy script — zero permanent changes to production repos.
+# Team 106 build & deploy script
 #
-# All team config lives in:  contest2026_106_VelaGoGoGo/configs/
-#   defconfig  — complete board defconfig (from vendor, with team overrides)
-#   rcS.nsh    — custom init script (launches home_scense on boot)
+# Uses contest board config from: contest2026_106_VelaGoGoGo/board/contest_board/
+# Linked to: vendor/openvela/boards/contest2026_106_board/
 #
 # Usage:
 #   ./build.sh                incremental build (daily dev, ~10s)
@@ -16,18 +15,16 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-TEAM_REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
+TEAM_REPO="$SCRIPT_DIR"
 WORKSPACE="$(cd "$TEAM_REPO/.." && pwd)"
 
-# Paths we temporarily override (restored after build)
-VENDOR_DEFCONFIG="$WORKSPACE/vendor/allwinnertech/boards/r528/r528s3-gemini-s1/configs/nsh_minidisplay/defconfig"
-VENDOR_RCS="$WORKSPACE/vendor/allwinnertech/boards/r528/r528s3-gemini-s1/src/etc/init.d/rcS.nsh"
-
-TEAM_DEFCONFIG="$TEAM_REPO/configs/defconfig"
-TEAM_RCS="$TEAM_REPO/configs/rcS.nsh"
-
-BOARD_CONFIG="vendor/allwinnertech/boards/r528/r528s3-gemini-s1/configs/nsh_minidisplay"
+# Contest board config (linked via manifest)
+BOARD_CONFIG="vendor/openvela/boards/contest2026_106_board/configs/nsh"
 NUTTX_DIR="$WORKSPACE/nuttx"
+
+# Vendor paths for rcS.nsh (needs temporary override)
+VENDOR_RCS="$WORKSPACE/vendor/allwinnertech/boards/r528/r528s3-gemini-s1/src/etc/init.d/rcS.nsh"
+TEAM_RCS="$TEAM_REPO/configs/rcS.nsh"
 VENDOR_GIT="$WORKSPACE/vendor/allwinnertech"
 
 export PATH="$WORKSPACE/prebuilts/build-tools/linux-x86_64/bin:$PATH"
@@ -35,19 +32,19 @@ export PATH="$WORKSPACE/prebuilts/build-tools/linux-x86_64/bin:$PATH"
 restore_vendor() {
     cd "$VENDOR_GIT"
     git checkout -- \
-        "boards/r528/r528s3-gemini-s1/configs/nsh_minidisplay/defconfig" \
         "boards/r528/r528s3-gemini-s1/src/etc/init.d/rcS.nsh" \
         2>/dev/null || true
-    echo "  [restored vendor files]"
+    echo "  [restored vendor rcS.nsh]"
 }
 
 do_full_build() {
     echo "=== Full build ==="
 
-    # Apply team configs (temporary — restored after build)
-    cp "$TEAM_DEFCONFIG" "$VENDOR_DEFCONFIG"
-    cp "$TEAM_RCS"       "$VENDOR_RCS"
-    echo "  [applied team defconfig + rcS.nsh]"
+    # Apply team rcS.nsh (temporary — restored after build)
+    if [ -f "$TEAM_RCS" ]; then
+        cp "$TEAM_RCS" "$VENDOR_RCS"
+        echo "  [applied team rcS.nsh]"
+    fi
 
     # Build
     cd "$WORKSPACE"
