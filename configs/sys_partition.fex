@@ -1,0 +1,101 @@
+;---------------------------------------------------------------------------------------------------------
+; 说明： 脚本中的字符串区分大小写，用户可以修改"="后面的数值，但是不要修改前面的字符串;
+;---------------------------------------------------------------------------------------------------------
+
+
+;--------------------------------------------------------------------------------------------------
+;                                   固件下载参数配置
+;--------------------------------------------------------------------------------------------------
+;****************************************************
+;    mbr的大小, 以Kbyte为单位
+;****************************************************
+[mbr]
+size = 256
+
+;********************************************************************************************************
+;                                              分区配置
+;
+;
+;  partition 定义范例:
+;    [partition]                ;  //表示是一个分区
+;    name        = USERFS2      ; //分区名称
+;    size        = 16384        ; //分区大小 单位: 扇区.分区表示个数最多2^31 * 512 = 2T
+;    downloadfile = "123.fex"   ; //下载文件的路径和名称，可以使用相对路径，相对是指相对于image.cfg文件所在分区。也可以使用绝对路径
+;    keydata     = 1            ; //私有数据分区，重新量产数据将不丢失
+;    encrypt     = 1            ; //采用加密方式烧录，将提供数据加密，但损失烧录速度
+;    user_type   = ?            ; //私有用法
+;    verify      = 1            ; //要求量产完成后校验是否正确
+;
+; 注：1、name唯一, 不允许同名
+;     2、name最大12个字符
+;     3、size = 0, 将创建一个无大小的空分区
+;     4、为了安全和效率考虑，分区大小最好保证为16M字节的整数倍
+;********************************************************************************************************
+[partition_start]
+
+; 5M logic space
+[partition]
+    name         = bootloader0
+    size         = 2048
+;    downloadfile = "bl.fex"
+    user_type    = 0x8000
+
+; used to separate logical and physical partitions
+; partition does not exist, size can be the total capacity of the flash (such as 524288 for 256MB)
+[partition]
+    name         = dummy_1
+    size         = 262144
+    user_type    = 0x8000
+
+[partition]
+    name         = boot0-direct
+    size         = 2048
+    user_type    = 0x8000
+
+[partition]
+    name         = uboot-direct
+    size         = 8192
+    user_type    = 0x8000
+
+[partition]
+    name         = reserved_1
+    size         = 2048
+    user_type    = 0x8000
+
+; used to separate logical and physical partitions
+; partition does not exist, size can be the total capacity of the flash (such as 524288 for 256MB)
+; phy block48 - block944 (896 blocks) for user
+[partition]
+    name         = sst
+    size         = 2560
+    user_type    = 0x8000
+
+[partition]
+     name         = bootloader
+     size         = 40960
+     user_type    = 0x8000
+	 downloadfile = "nsh.fex"
+
+;[partition]
+;    name         = tee
+;    size         = 6144
+;    downloadfile = "tee.fex"
+;    user_type    = 0x8000
+
+;[partition]
+;    name         = tee2
+;    size         = 6144
+;    downloadfile = "tee.fex"
+;    user_type    = 0x8000
+
+[partition]
+    name         = res
+    size         = 51200
+    downloadfile = "res.fex"
+    user_type    = 0x8000
+
+[partition]
+    name         = usrdata
+    size         = 425472
+    downloadfile = "usrdata.fex"
+    user_type    = 0x8000

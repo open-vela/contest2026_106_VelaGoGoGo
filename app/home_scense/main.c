@@ -13,6 +13,7 @@
 #include "sensor.h"
 #include "led_control.h"
 #include "ui_emoji.h"
+#include "ui_emoji_idle.h"
 
 /* Observer callbacks from ui_main.c */
 extern void time_observer_cb(lv_observer_t *, lv_subject_t *);
@@ -108,6 +109,36 @@ bool        g_blink_enabled = false;  /* master: switch ON → true */
 static bool        g_blink_paused  = false;  /* popup open → true */
 static bool        g_blink_high = true;      /* true→brightness 100, false→10 */
 static uint32_t    g_blink_color = 0xFF0000; /* current blink color (red) */
+
+/*-----------------------------------------------------------------------
+ * Idle detection — 10 s no input → emoji screen
+ *---------------------------------------------------------------------*/
+static uint32_t g_last_activity = 0;    /* tick of last user interaction   */
+static bool     g_idle_active   = false; /* emoji idle screen is showing    */
+
+/* Callback: when user taps to exit the idle emoji screen */
+static void on_idle_exit(void)
+{
+    g_idle_active   = false;
+    g_last_activity = lv_tick_get();
+}
+
+/* 1-second timer: if idle > 10 s and overlay not already active, show it */
+static void idle_check_cb(lv_timer_t *timer)
+{
+    (void)timer;
+    if (g_idle_active) return;
+
+    uint32_t elapsed = lv_tick_elaps(g_last_activity);
+    if (elapsed > 10000) {
+        g_idle_active = true;
+
+        lv_obj_t *overlay = emoji_idle_create(lv_scr_act(), on_idle_exit);
+        if (!overlay) {
+            g_idle_active = false;
+        }
+    }
+}
 
 /*-----------------------------------------------------------------------
  * Font loading
@@ -323,6 +354,11 @@ int main(int argc, FAR char *argv[])
     /* 30ms blink timer — always running, gated by g_blink_enabled && !g_blink_paused */
     g_blink_timer = lv_timer_create(led_blink_cb, 30, NULL);
     lv_timer_set_repeat_count(g_blink_timer, -1);
+
+    /* Idle detection — reset the clock and start the 1 s check timer */
+    g_last_activity = lv_tick_get();
+    lv_timer_t *idle_timer = lv_timer_create(idle_check_cb, 1000, NULL);
+    lv_timer_set_repeat_count(idle_timer, -1);
 
     /* Time timer */
     lv_timer_t *tt = lv_timer_create(update_time_cb, 1000, NULL);
