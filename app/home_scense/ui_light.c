@@ -1,12 +1,11 @@
 /****************************************************************************
  * app/home_scense/ui_light.c
  * Light-control popup window (LED switch + brightness slider).
- *
- * Originally part of OpenVela luncher_mini.c.
  ****************************************************************************/
 
 #include "main.h"
 #include "led_control.h"
+#include "ui_status.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -16,9 +15,7 @@ static void close_light_window_cb(lv_event_t *e);
 static void light_switch_event_cb(lv_event_t *e);
 static void brightness_slider_event_cb(lv_event_t *e);
 
-/*-----------------------------------------------------------------------
- * LED adapter wrappers (thin veneer over led_control)
- *---------------------------------------------------------------------*/
+/* LED adapter wrappers */
 void led_adapter_init(void)
 {
     led_error_t err = led_controller_init();
@@ -26,8 +23,8 @@ void led_adapter_init(void)
         LV_LOG_ERROR("LED init failed: %s", led_get_error_string(err));
         return;
     }
-    g_led_is_on      = false;
-    g_led_brightness = 100;
+    g_led_is_on      = true;   /* default ON for claude_status */
+    g_led_brightness = 50;
     led_set_color(LED_COLOR_WHITE);
     led_set_brightness(g_led_brightness);
 }
@@ -40,23 +37,27 @@ void led_adapter_deinit(void)
 
 void led_adapter_on(void)
 {
-    if (led_on() == LED_SUCCESS) g_led_is_on = true;
+    g_led_is_on = true;
+    claude_status_reapply();   /* show current claude status */
 }
 
 void led_adapter_off(void)
 {
-    if (led_off() == LED_SUCCESS) g_led_is_on = false;
+    g_led_is_on = false;
+    int fd = open("/dev/leds0", O_RDWR);
+    if (fd >= 0) {
+        uint32_t off = 0;
+        write(fd, &off, sizeof(off));
+        close(fd);
+    }
 }
 
 void led_adapter_set_brightness(int32_t brightness)
 {
     if (brightness < 0 || brightness > 100) return;
     g_led_brightness = brightness;
-    led_set_brightness(brightness);
     if (g_led_is_on) {
-        led_off();
-        usleep(10000);
-        led_on();
+        claude_status_reapply();
     }
 }
 
@@ -79,9 +80,6 @@ void led_adapter_diagnose(void)
 void create_light_control_window(void)
 {
     if (light_window) return;
-
-    /* Pause LED blink while user controls light manually */
-    led_blink_pause();
 
     lv_coord_t left = (SCREEN_WIDTH  - 240) / 2;
     lv_coord_t top  = (SCREEN_HEIGHT - 160) / 2;
@@ -123,7 +121,7 @@ void create_light_control_window(void)
     /* Switch */
     light_switch = lv_switch_create(light_window);
     lv_obj_align(light_switch, LV_ALIGN_TOP_LEFT, 30, 50);
-    if (g_blink_enabled) lv_obj_add_state(light_switch, LV_STATE_CHECKED);
+    if (g_led_is_on) lv_obj_add_state(light_switch, LV_STATE_CHECKED);
     lv_obj_add_event_cb(light_switch, light_switch_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
 
     lv_obj_t *sw_label = lv_label_create(light_window);
@@ -155,7 +153,6 @@ void create_light_control_window(void)
 static void close_light_window_cb(lv_event_t *e)
 {
     (void)e;
-    bool was_on = light_switch && lv_obj_has_state(light_switch, LV_STATE_CHECKED);
     if (light_window) {
         lv_obj_del(light_window);
         light_window = brightness_slider = brightness_label = NULL;
@@ -165,16 +162,16 @@ static void close_light_window_cb(lv_event_t *e)
         lv_obj_del(gamble_window);
         gamble_window = NULL;
     }
-    /* Resume blink only if switch was left ON */
-    if (was_on) led_blink_resume();
 }
 
 static void light_switch_event_cb(lv_event_t *e)
 {
-    if (lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED))
-        led_blink_start();
-    else
-        led_blink_stop();
+    if (lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED)) {
+        led_adapter_on();
+        claude_status_reapply();   /* let claude_status take over */
+    } else {
+        led_adapter_off();
+    }
 }
 
 static void brightness_slider_event_cb(lv_event_t *e)

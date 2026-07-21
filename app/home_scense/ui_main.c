@@ -6,7 +6,6 @@
  ****************************************************************************/
 
 #include "main.h"
-#include "ui_emoji.h"
 
 #include <unistd.h>
 #include <time.h>
@@ -128,10 +127,8 @@ static void window_click_cb(lv_event_t *e)
             create_light_control_window();
         } else if (i == 3) {   /* About */
             if (light_window) {
-                bool was_on = light_switch && lv_obj_has_state(light_switch, LV_STATE_CHECKED);
                 lv_obj_del(light_window); light_window = NULL;
                 light_switch = brightness_slider = brightness_label = NULL;
-                if (was_on) led_blink_resume();
             }
             create_gamble_info_window();
         }
@@ -173,11 +170,6 @@ void create_main_screen(void)
     lv_obj_set_style_text_font(date_label, g_misans_normal_12, 0);
     lv_obj_set_style_text_color(date_label, lv_color_hex(0xFFFFFF), 0);
     lv_obj_align_to(date_label, time_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 5);
-
-    /* Animated emoji — placed on scr at a fixed position to avoid any clipping */
-    lv_obj_t *emoji = emoji_create(scr);
-    lv_obj_set_pos(emoji, 110, 18);  /* right of the time */
-    lv_obj_move_foreground(emoji);
 
     /* Four launch tiles */
     const char *titles[4] = { "T&H", "Light", "Prox", "About" };

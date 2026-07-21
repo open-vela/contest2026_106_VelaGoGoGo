@@ -1,8 +1,6 @@
 /****************************************************************************
  * app/home_scense/main.h
  * Shared declarations for home_scense application.
- *
- * Based on OpenVela luncher_mini, restructured for contest 2026 team 106.
  ****************************************************************************/
 
 #ifndef HOME_SCENSE_MAIN_H
@@ -16,23 +14,17 @@
 #include <uv.h>
 #endif
 
-/*===========================================================================
- * Screen dimensions
- *===========================================================================*/
+/* Screen dimensions */
 #define SCREEN_WIDTH   320
 #define SCREEN_HEIGHT  240
 
-/*===========================================================================
- * Fonts (initialized by init_fonts)
- *===========================================================================*/
+/* Fonts */
 extern lv_font_t *g_misans_normal_11;
 extern lv_font_t *g_misans_normal_12;
 extern lv_font_t *g_misans_normal_16;
 extern lv_font_t *g_misans_normal_32;
 
-/*===========================================================================
- * LVGL subjects — data-driven UI
- *===========================================================================*/
+/* LVGL subjects */
 extern lv_subject_t hour_subject;
 extern lv_subject_t minute_subject;
 extern lv_subject_t second_subject;
@@ -43,9 +35,7 @@ extern lv_subject_t temperature_subject;
 extern lv_subject_t humidity_subject;
 extern lv_subject_t prox_subject;
 
-/*===========================================================================
- * Shared UI objects
- *===========================================================================*/
+/* Shared UI objects */
 extern lv_obj_t *time_label;
 extern lv_obj_t *date_label;
 extern lv_obj_t *window[4];
@@ -54,9 +44,7 @@ extern lv_obj_t *temp_label;
 extern lv_obj_t *humidity_label;
 extern lv_obj_t *prox_label;
 
-/*===========================================================================
- * Window objects (shared between ui_light / ui_about / ui_main)
- *===========================================================================*/
+/* Window objects */
 extern lv_obj_t *light_window;
 extern lv_obj_t *light_switch;
 extern lv_obj_t *brightness_slider;
@@ -64,16 +52,11 @@ extern lv_obj_t *brightness_label;
 extern bool       light_initialized;
 extern lv_obj_t *gamble_window;
 
-/*===========================================================================
- * LED state
- *===========================================================================*/
+/* LED state */
 extern bool    g_led_is_on;
 extern int32_t g_led_brightness;
-extern bool    g_blink_enabled;
 
-/*===========================================================================
- * Function declarations
- *===========================================================================*/
+/* Function declarations */
 void init_fonts(void);
 int  init_sensors(void);
 
@@ -87,12 +70,6 @@ void led_adapter_on(void);
 void led_adapter_off(void);
 void led_adapter_set_brightness(int32_t brightness);
 void led_adapter_diagnose(void);
-
-/* LED blink — lifecycle managed by main.c, paused/resumed by popups */
-void led_blink_start(void);
-void led_blink_stop(void);
-void led_blink_pause(void);
-void led_blink_resume(void);
 
 #ifdef CONFIG_LV_USE_NUTTX_LIBUV
 void lv_nuttx_uv_loop(uv_loop_t *loop, lv_nuttx_result_t *result);
