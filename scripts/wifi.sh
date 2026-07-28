@@ -1,117 +1,166 @@
 #!/bin/bash
 #=============================================================================
-# scripts/wifi.sh — ADB WiFi management for Gemini-S1 (openvela/NuttX)
-#
-# Usage:
-#   ./scripts/wifi.sh scan                 List available WiFi networks
-#   ./scripts/wifi.sh connect <SSID> <PSK>  Connect to a WPA/WPA2 network
-#   ./scripts/wifi.sh disconnect            Disconnect from WiFi
-#   ./scripts/wifi.sh status                Show current connection status
-#
-# Prerequisites:
-#   - Device connected via USB and `adb devices` shows it
-#   - /data/etc/wifi/ must exist on device
-#
-# NuttX quirks (vs Linux):
-#   - ifup/ifdown instead of ifconfig <iface> up/down
-#   - renew <iface> instead of dhcpc <iface>
-#   - wapi save_config does NOT persist to file — must adb push config
+# scripts/wifi.sh — ADB Wi-Fi management for Gemini-S1 (openvela/NuttX)
 #=============================================================================
 
 set -euo pipefail
 
 IFACE="wlan0"
 CONF_REMOTE="/data/etc/wifi/wapi.conf"
-CONF_LOCAL="/tmp/wapi_$$.conf"
+CONF_LOCAL="$(mktemp /tmp/wapi.XXXXXX.conf)"
+SCAN_TIMEOUT_SECONDS=15
 
-# ---- helpers ---------------------------------------------------------------
+cleanup() { rm -f "$CONF_LOCAL"; }
+trap cleanup EXIT
+
 die() { echo "[ERROR] $*" >&2; exit 1; }
 info() { echo "[INFO] $*"; }
+
 check_adb() {
-    if ! command -v adb &>/dev/null; then
-        die "adb not found in PATH. Install Android platform-tools first."
-    fi
-    local dev_count
-    dev_count=$(adb devices 2>/dev/null | grep -v "List of devices" | grep -c "device$" || true)
-    if [ "$dev_count" -eq 0 ]; then
-        die "No ADB device found. Connect Gemini-S1 via USB and check 'adb devices'."
-    fi
+    command -v adb >/dev/null 2>&1 || die "adb not found in PATH."
+    adb get-state 2>/dev/null | grep -qx device || \
+        die "No ADB device found. Connect Gemini-S1 via USB."
 }
 
-# ---- scan ------------------------------------------------------------------
-do_scan() {
-    check_adb
-    info "Scanning WiFi networks on $IFACE..."
-    adb shell "ifup $IFACE ; wapi scan $IFACE"
+run_wapi() {
+    timeout "$SCAN_TIMEOUT_SECONDS" adb shell "$*" ||
+        die "Wi-Fi command timed out or failed: $*. Check RTL8733BS driver state."
 }
 
-# ---- connect ---------------------------------------------------------------
-#  Steps verified on device:
-#   1. Scan to find BSSID for the target SSID
-#   2. Write wapi.conf with {mode, auth, cmode, alg, ssid, bssid, psk}
-#   3. adb push config → /data/etc/wifi/wapi.conf
-#   4. wapi disconnect + wapi reconnect
-#   5. Wait for association, then renew (DHCP)
-do_connect() {
+start_sta() {
+    info "Starting RTL8733BS in STA mode..."
+    run_wapi "ifup $IFACE; wapi mode $IFACE 2"
+}
+
+scan_output() {
+    start_sta
+    info "Scanning Wi-Fi networks on $IFACE..."
+    timeout "$SCAN_TIMEOUT_SECONDS" adb shell "wapi scan $IFACE" ||
+        die "Wi-Fi scan did not finish. The Realtek STA stack may be unavailable."
+}
+
+valid_ipv4() {
+    local address="$1"
+    [[ -n "$address" && "$address" != "0.0.0.0" && \
+       "$address" != "255.255.255.255" ]]
+}
+
+current_ip() {
+    adb shell "ifconfig $IFACE" 2>/dev/null |
+        sed -n 's/.*inet addr:\([0-9.]*\).*/\1/p' | head -n1
+}
+
+write_config() {
     local ssid="$1"
     local psk="$2"
+    local bssid="$3"
 
-    if [ -z "$ssid" ] || [ -z "$psk" ]; then
-        die "Usage: $0 connect <SSID> <PASSWORD>"
-    fi
+    [[ ${#ssid} -gt 0 && ${#ssid} -le 32 ]] ||
+        die "SSID must be 1–32 bytes."
+    [[ ${#psk} -ge 8 && ${#psk} -le 63 ]] ||
+        die "WPA2 password must be 8–63 characters."
 
-    check_adb
-
-    # --- find BSSID for this SSID via scan ---
-    info "Scanning for '$ssid'..."
-    local bssid
-    bssid=$(adb shell "ifup $IFACE ; wapi scan $IFACE" 2>/dev/null \
-        | awk -v ssid="$ssid" '$NF == ssid { print $1; exit }')
-    if [ -z "$bssid" ]; then
-        die "SSID '$ssid' not found in scan results. Check the name and try again."
-    fi
-    info "Found BSSID: $bssid"
-
-    # --- write config locally ---
-    cat > "$CONF_LOCAL" <<EOF
-{
+    python3 - "$ssid" "$psk" "$bssid" > "$CONF_LOCAL" <<'PY'
+import json
+import sys
+ssid, psk, bssid = sys.argv[1:]
+config = {
     "wlan0": {
         "mode": 2,
         "auth": 4,
         "cmode": 8,
         "alg": 3,
-        "ssid": "$ssid",
-        "bssid": "$bssid",
-        "psk": "$psk"
+        "ssid": ssid,
+        "psk": psk,
     }
 }
-EOF
+if bssid:
+    config["wlan0"]["bssid"] = bssid
+json.dump(config, sys.stdout, ensure_ascii=False, indent=2)
+sys.stdout.write("\n")
+PY
+}
 
-    # --- push and reconnect ---
-    info "Pushing config to device..."
+wait_for_association() {
+    local expected_bssid="$1"
+    local attempt ap
+
+    for attempt in $(seq 1 15); do
+        ap=$(adb shell "wapi show $IFACE" 2>/dev/null |
+             sed -n 's/.*AP:[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -n1)
+        if [[ -n "$ap" && "$ap" != "00:00:00:00:00:00" ]] &&
+           [[ -z "$expected_bssid" || "$ap" == "$expected_bssid" ]]; then
+            printf '%s\n' "$ap"
+            return 0
+        fi
+        sleep 1
+    done
+    return 1
+}
+
+wait_for_ipv4() {
+    local attempt address
+
+    for attempt in $(seq 1 3); do
+        info "Requesting IP via DHCP (attempt $attempt/3)..."
+        adb shell "renew $IFACE" || true
+        sleep 2
+        address=$(current_ip)
+        if valid_ipv4 "$address"; then
+            printf '%s\n' "$address"
+            return 0
+        fi
+    done
+    return 1
+}
+
+configure_dns_and_time() {
+    info "Configuring fallback DNS and starting NTP..."
+    adb shell "echo 'nameserver 223.5.5.5' > /tmp/resolv.conf; \
+               echo 'nameserver 119.29.29.29' >> /tmp/resolv.conf; \
+               ntpcstart" || true
+}
+
+# ---- scan ------------------------------------------------------------------
+do_scan() {
+    check_adb
+    scan_output
+}
+
+# ---- connect ---------------------------------------------------------------
+do_connect() {
+    local ssid="${1:-}"
+    local psk="${2:-}"
+    local scan bssid ap address
+
+    [[ -n "$ssid" && -n "$psk" ]] ||
+        die "Usage: $0 connect <SSID> <PASSWORD>"
+    check_adb
+
+    scan=$(scan_output)
+    bssid=$(printf '%s\n' "$scan" |
+        awk -v target="$ssid" '
+            $1 ~ /^([0-9A-Fa-f][0-9A-Fa-f]:){5}[0-9A-Fa-f][0-9A-Fa-f]$/ {
+                name = $NF
+                if (name == target) { print $1; exit }
+            }')
+    [[ -n "$bssid" ]] || die "SSID '$ssid' not found in scan results."
+    info "Using BSSID: $bssid"
+
+    write_config "$ssid" "$psk" "$bssid"
+    info "Saving Wi-Fi configuration to device..."
+    adb shell "mkdir -p /data/etc/wifi" || die "/data is not mounted. Flash the corrected image first."
     adb push "$CONF_LOCAL" "$CONF_REMOTE" >/dev/null || die "adb push failed"
-    rm -f "$CONF_LOCAL"
 
-    info "Reconnecting..."
-    adb shell "wapi disconnect $IFACE ; wapi reconnect $IFACE"
-
-    # --- wait for association ---
-    info "Waiting for association..."
-    sleep 5
-
-    # --- verify AP association ---
-    local ap
-    ap=$(adb shell "wapi show $IFACE" 2>/dev/null | awk '/AP:/ { print $NF }')
-    if [ "$ap" = "00:00:00:00:00:00" ] || [ -z "$ap" ]; then
-        die "Association failed — AP is $ap. Check SSID / password."
-    fi
+    info "Connecting..."
+    run_wapi "wapi disconnect $IFACE; wapi reconnect $IFACE"
+    ap=$(wait_for_association "$bssid") ||
+        die "Association failed. Check SSID, password, BSSID, and AP security."
     info "Associated with AP: $ap"
 
-    # --- DHCP ---
-    info "Requesting IP via DHCP..."
-    adb shell "renew $IFACE"
-    sleep 1
-
+    address=$(wait_for_ipv4) || die "DHCP failed; no usable IPv4 address."
+    info "Received IP: $address"
+    configure_dns_and_time
     do_status
 }
 
@@ -119,7 +168,7 @@ EOF
 do_disconnect() {
     check_adb
     info "Disconnecting $IFACE..."
-    adb shell "wapi disconnect $IFACE ; ifdown $IFACE"
+    adb shell "wapi disconnect $IFACE; ifdown $IFACE"
     info "Disconnected"
 }
 
@@ -127,34 +176,20 @@ do_disconnect() {
 do_status() {
     check_adb
     echo ""
-    echo "========================== WiFi Status ==========================="
-    adb shell "wapi show $IFACE"
-    echo ""
+    echo "========================== Wi-Fi Status =========================="
+    adb shell "wapi show $IFACE" || true
     adb shell "ifconfig $IFACE" || true
-    echo "=================================================================="
+    adb shell "cat /tmp/resolv.conf" || true
+    echo "==================================================================="
 }
 
-# ---- main ------------------------------------------------------------------
 case "${1:-}" in
-    scan)
-        do_scan
-        ;;
-    connect)
-        do_connect "${2:-}" "${3:-}"
-        ;;
-    disconnect)
-        do_disconnect
-        ;;
-    status)
-        do_status
-        ;;
+    scan)       do_scan ;;
+    connect)    do_connect "${2:-}" "${3:-}" ;;
+    disconnect) do_disconnect ;;
+    status)     do_status ;;
     *)
         echo "Usage: $0 {scan|connect <SSID> <PSK>|disconnect|status}"
-        echo ""
-        echo "  scan                 List available WiFi networks"
-        echo "  connect <SSID> <PSK>  Connect to a WPA/WPA2 network"
-        echo "  disconnect            Disconnect from WiFi"
-        echo "  status                Show current connection status"
         exit 1
         ;;
 esac

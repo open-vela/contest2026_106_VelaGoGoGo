@@ -36,6 +36,8 @@ set errcode $?
 if [ $errcode -ne 0 ]
 then
   echo "/dev/usrdata mount failed, errcode is" $errcode
+else
+  echo "/data mounted"
 fi
 
 #ifdef CONFIG_SYSTEM_ADBD
@@ -79,13 +81,20 @@ fi
 #endif
 #endif
 
-#ifdef CONFIG_SYSTEM_NTPC
-ntpcstart &
-#endif
-
 if [ -f /data/etc/wifi/wapi.conf ]
 then
+  echo "[wifi] starting RTL8733BS STA"
+  ifup wlan0
+  wapi mode wlan0 2
   sh /etc/wifi/start_wifi.sh &
+
+#ifdef CONFIG_SYSTEM_NTPC
+  /* The Wi-Fi script needs association plus DHCP before NTP uses DNS/UDP. */
+  sleep 12
+  ntpcstart &
+#endif
+else
+  echo "[wifi] configuration missing; Wi-Fi remains offline"
 fi
 
 #ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_HELLO_APP

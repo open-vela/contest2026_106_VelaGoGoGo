@@ -94,8 +94,9 @@ size = 256
     downloadfile = "res.fex"
     user_type    = 0x8000
 
+; Keep within the 128 MiB target's physical NAND budget after bootloader/res.
 [partition]
     name         = usrdata
-    size         = 425472
+    size         = 151552
     downloadfile = "usrdata.fex"
     user_type    = 0x8000

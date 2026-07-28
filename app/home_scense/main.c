@@ -14,6 +14,13 @@
 #include "led_control.h"
 #include "ui_emoji_idle.h"
 #include "ui_status.h"
+#include "ui_voice.h"
+#include "ui_settings.h"
+#include "ui_status_bar.h"
+#include "wifi_status.h"
+#ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
+#include "doubao/doubao_voice.h"
+#endif
 
 /* Observer callbacks from ui_main.c */
 extern void time_observer_cb(lv_observer_t *, lv_subject_t *);
@@ -109,21 +116,35 @@ int32_t g_led_brightness;
 static uint32_t g_last_activity = 0;    /* tick of last user interaction   */
 static bool     g_idle_active   = false; /* emoji idle screen is showing    */
 
-/* Callback: when user taps to exit the idle emoji screen */
-static void on_idle_exit(void)
+void home_record_activity(void)
 {
-    g_idle_active   = false;
     g_last_activity = lv_tick_get();
 }
 
-/* 1-second timer: if idle > 10 s and overlay not already active, show it */
+/* Callback: when user taps to exit the idle emoji screen */
+static void on_idle_exit(void)
+{
+    g_idle_active = false;
+    home_record_activity();
+}
+
+/* 1-second timer: if idle > 60 s and overlay not already active, show it */
 static void idle_check_cb(lv_timer_t *timer)
 {
     (void)timer;
     if (g_idle_active) return;
 
+#ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
+    doubao_voice_snapshot_t voice;
+    doubao_voice_get_snapshot(&voice);
+    if (voice.state == DOUBAO_VOICE_CONNECTING ||
+        voice.state == DOUBAO_VOICE_RECORDING ||
+        voice.state == DOUBAO_VOICE_WAITING_RESPONSE ||
+        voice.state == DOUBAO_VOICE_PLAYING) return;
+#endif
+
     uint32_t elapsed = lv_tick_elaps(g_last_activity);
-    if (elapsed > 10000) {
+    if (elapsed > 60000) {
         g_idle_active = true;
 
         lv_obj_t *overlay = emoji_idle_create(lv_scr_act(), on_idle_exit);
@@ -225,8 +246,11 @@ int main(int argc, FAR char *argv[])
 #ifdef CONFIG_LV_USE_NUTTX_LCD
     info.fb_path = "/dev/lcd0";
 #endif
-#ifdef CONFIG_INPUT_TOUCHSCREEN
-    info.input_path = CONFIG_EXAMPLES_LVGLDEMO_INPUT_DEVPATH;
+#ifdef CONFIG_LV_USE_NUTTX_TOUCHSCREEN
+#  ifndef CONFIG_LVX_USE_DEMO_CONTEST2026_106_TOUCH_DEVPATH
+#    define CONFIG_LVX_USE_DEMO_CONTEST2026_106_TOUCH_DEVPATH "/dev/input0"
+#  endif
+    info.input_path = CONFIG_LVX_USE_DEMO_CONTEST2026_106_TOUCH_DEVPATH;
 #endif
 #ifdef CONFIG_LV_USE_NUTTX_LIBUV
     uv_loop_t ui_loop;
@@ -238,9 +262,22 @@ int main(int argc, FAR char *argv[])
         LV_LOG_ERROR("Display init failed");
         return 1;
     }
+#ifdef CONFIG_LV_USE_NUTTX_TOUCHSCREEN
+    if (!result.indev) {
+        LV_LOG_ERROR("Touchscreen init failed: %s", info.input_path);
+        return 1;
+    }
+#endif
 
     init_fonts();
     create_main_screen();
+#ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
+    doubao_voice_init();
+#endif
+    ui_settings_init(lv_scr_act());
+#ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
+    ui_voice_create(ui_settings_home_content());
+#endif
 
     /* Init subjects */
     lv_subject_init_int(&hour_subject, 0);
@@ -250,23 +287,12 @@ int main(int argc, FAR char *argv[])
     lv_subject_init_int(&month_day_subject, 1);
     lv_subject_init_pointer(&month_name_subject, (void *)"January");
 
-    lv_subject_add_observer_obj(&hour_subject, time_observer_cb, time_label, NULL);
-    lv_subject_add_observer_obj(&minute_subject, time_observer_cb, time_label, NULL);
-    lv_subject_add_observer_obj(&second_subject, time_observer_cb, time_label, NULL);
-    lv_subject_add_observer_obj(&week_day_name_subject, date_observer_cb, date_label, NULL);
-    lv_subject_add_observer_obj(&month_day_subject, date_observer_cb, date_label, NULL);
-    lv_subject_add_observer_obj(&month_name_subject, date_observer_cb, date_label, NULL);
-
     update_time_cb(NULL);
 
     /* Sensors */
     lv_subject_init_int(&temperature_subject, 250);
     lv_subject_init_int(&humidity_subject, 600);
     lv_subject_init_int(&prox_subject, 50);
-
-    lv_subject_add_observer_obj(&temperature_subject, temperature_observer_cb, temp_label, NULL);
-    lv_subject_add_observer_obj(&humidity_subject, humidity_observer_cb, humidity_label, NULL);
-    lv_subject_add_observer_obj(&prox_subject, prox_observer_cb, prox_label, NULL);
 
     if (init_sensors() != 0)
         LV_LOG_ERROR("Sensor init failed");
@@ -288,6 +314,19 @@ int main(int argc, FAR char *argv[])
         claude_status_poll, 100, NULL);
     lv_timer_set_repeat_count(status_timer, -1);
 
+    /* Voice and system UI polling stay on the LVGL thread. */
+    wifi_status_refresh(NULL);
+#ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
+    lv_timer_t *voice_timer = lv_timer_create(ui_voice_refresh, 150, NULL);
+    lv_timer_set_repeat_count(voice_timer, -1);
+#endif
+    lv_timer_t *wifi_timer = lv_timer_create(wifi_status_refresh, 1500, NULL);
+    lv_timer_set_repeat_count(wifi_timer, -1);
+    lv_timer_t *settings_timer = lv_timer_create(ui_settings_refresh, 1000, NULL);
+    lv_timer_set_repeat_count(settings_timer, -1);
+    lv_timer_t *bar_timer = lv_timer_create(ui_status_bar_refresh, 500, NULL);
+    lv_timer_set_repeat_count(bar_timer, -1);
+
     /* Time timer */
     lv_timer_t *tt = lv_timer_create(update_time_cb, 1000, NULL);
     if (tt) lv_timer_set_repeat_count(tt, -1);
@@ -302,6 +341,9 @@ int main(int argc, FAR char *argv[])
     }
 #endif
 
+#ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
+    doubao_voice_deinit();
+#endif
     claude_status_deinit();
     led_adapter_deinit();
     return 0;

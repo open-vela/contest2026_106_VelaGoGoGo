@@ -28,15 +28,31 @@ TEAM_RCS="$TEAM_REPO/configs/rcS.nsh"
 VENDOR_PART="$WORKSPACE/vendor/allwinnertech/lichee/board/r528s3/gemini-s1_nand/configs/sys_partition.fex"
 TEAM_PART="$TEAM_REPO/configs/sys_partition.fex"
 VENDOR_GIT="$WORKSPACE/vendor/allwinnertech"
+VENDOR_BOARD_MAKEFILE="$WORKSPACE/vendor/allwinnertech/boards/r528/r528s3-gemini-s1/src/Makefile"
+CA_ROMFS_RAW="etc/ssl/certs/doubao-ca.pem"
+TEAM_CA="$TEAM_REPO/app/home_scense/doubao/certs/doubao-ca.pem"
+VENDOR_CA="$WORKSPACE/vendor/allwinnertech/boards/r528/r528s3-gemini-s1/src/$CA_ROMFS_RAW"
 
 export PATH="$WORKSPACE/prebuilts/build-tools/linux-x86_64/bin:$PATH"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
+refresh_doubao_objects() {
+    # __has_include("doubao_secret.h") is not reliably represented in old
+    # generated dependency files. Recompile the coordinator after local
+    # credential changes so a package cannot silently retain placeholders.
+    find "$TEAM_REPO/app/home_scense/doubao" -maxdepth 1 -type f \
+        -name 'doubao_voice.c.*.o' -delete
+}
+
+
+
 restore_vendor() {
     cd "$VENDOR_GIT"
     git checkout -- \
         "boards/r528/r528s3-gemini-s1/src/etc/init.d/rcS.nsh" \
+        "boards/r528/r528s3-gemini-s1/src/Makefile" \
+        "boards/r528/r528s3-gemini-s1/src/etc/ssl/certs/doubao-ca.pem" \
         "lichee/board/r528s3/gemini-s1_nand/configs/sys_partition.fex" \
         2>/dev/null || true
     echo "  [restored vendor rcS.nsh + sys_partition.fex]"
@@ -54,6 +70,30 @@ do_full_build() {
         cp "$TEAM_PART" "$VENDOR_PART"
         echo "  [applied team sys_partition.fex]"
     fi
+    [ -f "$TEAM_CA" ] || die "Missing Doubao CA certificate asset"
+    mkdir -p "$(dirname "$VENDOR_CA")"
+    cp "$TEAM_CA" "$VENDOR_CA"
+    grep -qF "RCRAWS += $CA_ROMFS_RAW" "$VENDOR_BOARD_MAKEFILE" || \
+        printf '\nRCRAWS += %s\n' "$CA_ROMFS_RAW" >> "$VENDOR_BOARD_MAKEFILE"
+    echo "  [included CA bundle in ROMFS]"
+
+    # NuttX caches ROMFS artifacts and skips regeneration when only the
+    # board Makefile (RCRAWS) changes, not .config.
+    rm -f "$WORKSPACE/nuttx/etctmp/romfs.c" "$WORKSPACE/nuttx/etctmp/romfs.o"
+    rm -rf "$WORKSPACE/nuttx/etctmp/etc/ssl"
+
+    # repo sync forces LFS smudge=--skip on every repo, leaving 134-byte
+    # pointer files instead of real .a binaries. Pull the real blobs now
+    # so the linker doesn't fail with "file format not recognized".
+    echo "  [pulling LFS objects for prebuilt libraries]"
+    for libs_repo in "$WORKSPACE"/vendor/openvela/boards/vela/libs; do
+      if [ -f "$libs_repo/.gitattributes" ] && git -C "$libs_repo" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        git -C "$libs_repo" config --local filter.lfs.smudge 'git-lfs smudge -- %f'
+        git -C "$libs_repo" config --local filter.lfs.process 'git-lfs filter-process'
+        git -C "$libs_repo" lfs pull "$(git -C "$libs_repo" remote | head -1)"
+        echo "  [lfs pull done: $libs_repo]"
+      fi
+    done
 
     # Build
     cd "$WORKSPACE"

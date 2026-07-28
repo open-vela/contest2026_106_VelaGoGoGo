@@ -59,6 +59,7 @@ extern int32_t g_led_brightness;
 /* Function declarations */
 void init_fonts(void);
 int  init_sensors(void);
+void home_record_activity(void);
 
 void create_main_screen(void);
 void create_light_control_window(void);

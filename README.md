@@ -68,6 +68,34 @@ README.md                   # 作品说明（提交前请改成你自己的，�
 
 ---
 
+## 豆包实时语音（比赛 MVP）
+
+`app/home_scense/` 已预留豆包端到端实时语音对话模块：点击 AI 入口开始录音，再次点击结束；设备使用 `/dev/audio/pcm0c` 以 16 kHz PCM 上传语音，并显示识别/回答文本、播放服务返回的 TTS PCM。
+
+### 本地凭证（不要提交 Git）
+
+完整构建前，在本机创建私密头文件：
+
+```bash
+cp app/home_scense/doubao/doubao_secret.h.example \
+  app/home_scense/doubao/doubao_secret.h
+```
+
+填写火山引擎控制台取得的 APP ID、Access Token，以及实际开通的模型和音色。真实文件已被 `.gitignore` 忽略；它会编译进测试固件，但不会进入 Git 历史或 AI Coding 日志。
+
+### 真机准备
+
+```bash
+./scripts/wifi.sh connect "<SSID>" "<PASSWORD>"
+adb shell "date"
+adb shell "ls -l /dev/audio/pcm*"
+adb shell "ping -c 1 openspeech.bytedance.com"
+```
+
+TLS 依赖正确的设备时间、网络/DNS 及系统 CA 证书；预期音频节点为 `/dev/audio/pcm0c` 和 `/dev/audio/pcm0p`。更详细的模块边界与调试步骤见 [`app/home_scense/doubao/README.md`](app/home_scense/doubao/README.md)。
+
+---
+
 ## 四、第三步：编译与运行
 
 编译/运行步骤随作品形态不同而不同，请参考你所在赛道的教程导航：

@@ -1,0 +1,10 @@
+# Local Doubao contest credentials (never commit)
+
+# Build artifacts
+build/
+out/
+*.o
+*.a
+*.elf
+*.hex
+*.map

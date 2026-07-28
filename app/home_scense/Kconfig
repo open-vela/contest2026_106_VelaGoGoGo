@@ -24,4 +24,30 @@ config LVX_USE_DEMO_CONTEST2026_106_STACKSIZE
 	int "Stack size"
 	default 102400
 
+config LVX_USE_DEMO_CONTEST2026_106_TOUCH_DEVPATH
+	string "Touchscreen input device"
+	default "/dev/input0"
+	---help---
+		NuttX input event device used by the LVGL touchscreen backend.
+
+config LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
+	bool "Enable Doubao push-to-talk voice assistant"
+	default y
+	depends on LIB_CURL && CRYPTO_MBEDTLS && AUDIOUTILS_NXAUDIO_LIB
+	---help---
+		Enable the contest-only Doubao RealtimeAPI voice interaction panel.
+		Credentials are compiled locally from ignored doubao_secret.h.
+
+if LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
+
+config LVX_USE_DEMO_CONTEST2026_106_DOUBAO_CAPTURE_DEV
+	string "Doubao microphone device"
+	default "/dev/audio/pcm0c"
+
+config LVX_USE_DEMO_CONTEST2026_106_DOUBAO_PLAYBACK_DEV
+	string "Doubao speaker device"
+	default "/dev/audio/pcm0p"
+
+endif
+
 endif
