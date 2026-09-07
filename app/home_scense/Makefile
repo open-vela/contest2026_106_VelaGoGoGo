@@ -15,6 +15,11 @@ CSRCS += ui_voice.c doubao/doubao_voice.c doubao/doubao_protocol.c \
 ASRCS += doubao/wake_reply_assets.S
 endif
 
+ifeq ($(CONFIG_LVX_USE_DEMO_CONTEST2026_106_WAKEUP),y)
+CSRCS += wakeup/wakeup.c wakeup/mel_features.c wakeup/mic_capture.c \
+         wakeup/wav_player.c
+endif
+
 PROGNAME  = $(CONFIG_LVX_USE_DEMO_CONTEST2026_106_PROGNAME)
 PRIORITY  = $(CONFIG_LVX_USE_DEMO_CONTEST2026_106_PRIORITY)
 STACKSIZE = $(CONFIG_LVX_USE_DEMO_CONTEST2026_106_STACKSIZE)

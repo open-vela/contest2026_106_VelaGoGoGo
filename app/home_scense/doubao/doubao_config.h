@@ -63,6 +63,11 @@
 /* CHAT_ENDED 后继续等待滞后 TTS 音频的静默超时(ms)。 */
 #define DOUBAO_DRAIN_TIMEOUT_MS          5000
 
+/* 开麦前等待唤醒线程释放麦克风的上限(ms)。正常交接 ~200ms 内完成(唤醒
+ * 线程每圈轮询 talking, 看到即停); 超时说明唤醒线程异常卡死, 放弃等待
+ * 强开麦克风(退回无仲裁旧行为)以免会话永远起不来。 */
+#define DOUBAO_MIC_HANDOFF_TIMEOUT_MS    3000
+
 #define DOUBAO_TEXT_MAX               512
 /* 单轮 AI 回复累加缓冲。中文 UTF-8 每字 3 字节,豆包长回复常达数百字,
  * 2048 只够约 680 字;放大到 8192(≈2700 字)覆盖正常长回复。 */

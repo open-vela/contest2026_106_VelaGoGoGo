@@ -163,6 +163,19 @@ do_pack_img() {
     fi
 
     LICHEE="$WORKSPACE/vendor/allwinnertech/lichee"
+
+    # 唤醒应答音 → /data: make_usrdata_image 用 board/common/data/UDISK/
+    # 生成 usrdata.fex (startup.wav 同款路径)。临时拷入, 打包后删除。
+    # 设备端 wakeup.c 从 /data/wakeup_wozai.wav 读取 —— 漏拷 = 无应答音。
+    local wozai_src="$TEAM_REPO/app/home_scense/wakeup/wakeup_wozai.wav"
+    local wozai_dst="$LICHEE/board/common/data/UDISK/wakeup_wozai.wav"
+    if [ -f "$wozai_src" ]; then
+        cp "$wozai_src" "$wozai_dst"
+        echo "  [added wakeup_wozai.wav to usrdata (/data) pack]"
+    else
+        echo "  [warn] $wozai_src missing — packed image will lack the wake ack"
+    fi
+
     cd "$LICHEE"
     source tools/scripts/envsetup.sh 2>/dev/null
     rm -rf out
@@ -174,11 +187,22 @@ do_pack_img() {
     echo ""
     ls -lh "$LICHEE/out/r528s3/gemini-s1_nand/"*.img 2>/dev/null || true
 
-    # Restore vendor partition (envsetup changes CWD)
+    # Self-check: the ack wav must actually be inside the packed usrdata.fex
+    # (the YAFFS directory entry stores the filename as raw bytes). NB: grep
+    # the file directly — a `strings | grep -q` pipe breaks under
+    # `set -o pipefail` (grep -q exits early, strings dies on SIGPIPE).
+    local wozai_fex="$LICHEE/out/r528s3/gemini-s1_nand/image/usrdata.fex"
+    if [ -f "$wozai_fex" ] && ! grep -aq "wakeup_wozai.wav" "$wozai_fex"; then
+        echo "  [ERROR] wakeup_wozai.wav NOT found in packed usrdata.fex — /data will lack the wake ack!"
+    fi
+
+    # Restore vendor partition (envsetup changes CWD). The wav is an
+    # untracked new file — git checkout won't remove it, delete explicitly.
+    rm -f "$LICHEE/board/common/data/UDISK/wakeup_wozai.wav"
     git -C "$VENDOR_GIT" checkout -- \
         "lichee/board/r528s3/gemini-s1_nand/configs/sys_partition.fex" \
         2>/dev/null
-    echo "  [restored vendor sys_partition.fex]"
+    echo "  [restored vendor sys_partition.fex + UDISK dir]"
     echo "=== Pack done ==="
 }
 
@@ -191,5 +215,5 @@ case "$MODE" in
     full-flash|flash-full) do_full_build; do_flash ;;
     pack)        do_pack_img ;;
     pack-flash)  do_pack_img; do_flash ;;
-    *)           do_incremental_build ;;
+    *)           do_incremental_build;;
 esac

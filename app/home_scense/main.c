@@ -23,6 +23,9 @@
 #include "doubao/doubao_voice.h"
 #endif
 #include "face_detect.h"   /* defines HOME_SCENSE_FACE_DETECT_ENABLED if active */
+#ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_WAKEUP
+#include "wakeup/wakeup.h"
+#endif
 
 /* Observer callbacks from ui_main.c */
 extern void time_observer_cb(lv_observer_t *, lv_subject_t *);
@@ -291,6 +294,12 @@ int main(int argc, FAR char *argv[])
     ui_voice_create(ui_settings_home_content());
 #endif
 
+    /* Hands-free wake word — starts the mic-listening thread (after the
+     * Doubao session and voice UI exist so a wake can trigger a session) */
+#ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_WAKEUP
+    wakeup_init();
+#endif
+
     /* Init subjects */
     lv_subject_init_int(&hour_subject, 0);
     lv_subject_init_int(&minute_subject, 0);
@@ -357,6 +366,11 @@ int main(int argc, FAR char *argv[])
 
 #ifdef HOME_SCENSE_FACE_DETECT_ENABLED
     face_detect_stop();
+#endif
+    /* Wake thread first: it calls doubao APIs and must be joined before the
+     * Doubao context (mutex included) is torn down. */
+#ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_WAKEUP
+    wakeup_deinit();
 #endif
 #ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
     doubao_voice_deinit();

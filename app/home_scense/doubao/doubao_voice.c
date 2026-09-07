@@ -23,6 +23,13 @@
 #include "voice_transport.h"
 #include "../wifi_status.h"
 
+/* 麦克风双向仲裁: 唤醒线程(wakeup)与本会话互斥使用 /dev/audio/pcm0c。
+ * 本侧在开麦上升沿先等 wakeup_is_recording() 清零; wakeup 侧则在
+ * talking=true 全程不开麦(见 wakeup.c assistant_busy)。 */
+#ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_WAKEUP
+#  include "../wakeup/wakeup.h"
+#endif
+
 #include <nuttx/config.h>
 
 #include <ctype.h>
@@ -686,6 +693,29 @@ static int session_loop(voice_transport_t *transport, const char *session_id)
       /* 对话开始/停止边沿 */
       if (talking && !was_talking)
         {
+#ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_WAKEUP
+          /* 开麦前等唤醒线程释放麦克风(它每圈轮询 talking, 看到即停,
+           * 正常交接 ~200ms)。超时兜底: 唤醒线程卡死时放弃等待强开,
+           * 否则会话永远起不来。 */
+          {
+            uint64_t wait_start = now_ms();
+            while (wakeup_is_recording() && !is_shutdown() &&
+                   now_ms() - wait_start < DOUBAO_MIC_HANDOFF_TIMEOUT_MS)
+              {
+                usleep(20 * 1000);
+              }
+            if (wakeup_is_recording())
+              {
+                DOUBAO_LOG("mic handoff: wakeup still recording after %dms, "
+                           "opening anyway", DOUBAO_MIC_HANDOFF_TIMEOUT_MS);
+              }
+            else if (now_ms() - wait_start >= 20)
+              {
+                DOUBAO_LOG("mic handoff: waited %llums for wakeup release",
+                           (unsigned long long)(now_ms() - wait_start));
+              }
+          }
+#endif
           ret = voice_capture_open(&capture, g_voice.config.capture_device,
                                    DOUBAO_CAPTURE_RATE, DOUBAO_CAPTURE_CHANNELS,
                                    DOUBAO_CAPTURE_BITS);

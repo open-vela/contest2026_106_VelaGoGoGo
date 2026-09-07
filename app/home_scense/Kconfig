@@ -51,4 +51,22 @@ config LVX_USE_DEMO_CONTEST2026_106_DOUBAO_PLAYBACK_DEV
 
 endif
 
+config LVX_USE_DEMO_CONTEST2026_106_WAKEUP
+	bool "Enable hands-free wake-word trigger"
+	default y
+	depends on LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
+	---help---
+		Background wake-word detection (pure-C CNN ported from
+		apps/wake_demo). While the Doubao assistant is idle the wake
+		thread owns the microphone; on the wake word it releases the mic
+		and starts a Doubao session hands-free.
+
+if LVX_USE_DEMO_CONTEST2026_106_WAKEUP
+
+config LVX_USE_DEMO_CONTEST2026_106_WAKEUP_CAPTURE_DEV
+	string "Wake-word microphone device"
+	default "/dev/audio/pcm0c"
+
+endif
+
 endif

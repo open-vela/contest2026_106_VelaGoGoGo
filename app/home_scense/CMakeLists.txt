@@ -99,6 +99,14 @@ if(CONFIG_LVX_USE_DEMO_CONTEST2026_106_HELLO_APP)
       ${TFLITE_MICRO_SRCS})
   endif()
 
+  if(CONFIG_LVX_USE_DEMO_CONTEST2026_106_WAKEUP)
+    list(APPEND home_scense_srcs
+      wakeup/wakeup.c
+      wakeup/mel_features.c
+      wakeup/mic_capture.c
+      wakeup/wav_player.c)
+  endif()
+
   nuttx_add_application(
     NAME      ${CONFIG_LVX_USE_DEMO_CONTEST2026_106_PROGNAME}
     SRCS      ${home_scense_srcs}
