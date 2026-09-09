@@ -9,6 +9,7 @@ if(CONFIG_LVX_USE_DEMO_CONTEST2026_106_HELLO_APP)
     ui_about.c
     led_control.c
     ui_emoji_idle.c
+    home_scense_emoji_ipc.c
     claude_mqtt.c
     ui_claude_status.c
     ui_status_bar.c

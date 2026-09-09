@@ -19,7 +19,12 @@ typedef struct {
 
 static emoji_idle_t   g_idle;
 static lv_image_dsc_t g_dsc;
-static int            g_next_emoji;  /* round-robin cursor */
+static int            g_next_emoji;  /* next automatic emoji index */
+static bool           g_named_play;  /* keep a named emoji selected */
+
+/* Only these resources participate in automatic startup/idle rotation. */
+static const int g_auto_emoji_indices[] = { 0, 1 }; /* 02, 03 */
+static size_t g_auto_emoji_pos;
 
 /*-----------------------------------------------------------------------
  * Timer: advance keyframe; wrap to next emoji at end of current one.
@@ -30,9 +35,13 @@ static void anim_cb(lv_timer_t *t)
 
     g_idle.keyframe++;
     if (g_idle.keyframe >= EMOJI_MAX_KEYFRAMES) {
-        g_idle.emoji_idx = g_next_emoji;
-        g_idle.keyframe  = 0;
-        g_next_emoji     = (g_idle.emoji_idx + 1) % EMOJI_COUNT;
+        g_idle.keyframe = 0;
+        if (!g_named_play) {
+            g_idle.emoji_idx = g_auto_emoji_indices[g_auto_emoji_pos];
+            g_auto_emoji_pos = (g_auto_emoji_pos + 1) %
+                (sizeof(g_auto_emoji_indices) / sizeof(g_auto_emoji_indices[0]));
+            g_next_emoji = g_auto_emoji_indices[g_auto_emoji_pos];
+        }
     }
 
     const unsigned char *frame = emoji_blob_data +
@@ -52,20 +61,60 @@ static void click_cb(lv_event_t *e)
     if (g_idle.overlay) { lv_obj_del(g_idle.overlay); }
     if (g_idle.on_exit) g_idle.on_exit();
     memset(&g_idle, 0, sizeof(g_idle));
+    g_named_play = false;
 }
 
 /*-----------------------------------------------------------------------
  * Public
  *---------------------------------------------------------------------*/
+static int emoji_index_from_name(const char *name)
+{
+    if (!name) return -1;
+
+    for (int i = 0; i < EMOJI_COUNT; i++) {
+        if (strcmp(name, g_emoji_names[i]) == 0) return i;
+    }
+
+    return -1;
+}
+
+void emoji_idle_stop(void)
+{
+    if (g_idle.timer)   lv_timer_del(g_idle.timer);
+    if (g_idle.overlay) lv_obj_del(g_idle.overlay);
+    memset(&g_idle, 0, sizeof(g_idle));
+    g_named_play = false;
+}
+
+lv_obj_t *emoji_idle_play(lv_obj_t *parent, const char *name,
+                          emoji_idle_exit_cb_t on_exit)
+{
+    int idx = emoji_index_from_name(name);
+    if (idx < 0) return NULL;
+
+    emoji_idle_stop();
+    g_next_emoji = idx;
+    g_named_play = true;
+
+    return emoji_idle_create(parent, on_exit);
+}
+
 lv_obj_t *emoji_idle_create(lv_obj_t *parent, emoji_idle_exit_cb_t on_exit)
 {
     memset(&g_idle, 0, sizeof(g_idle));
 
-    int idx = g_next_emoji;
+    int idx;
+    if (g_named_play) {
+        idx = g_next_emoji;
+    } else {
+        idx = g_auto_emoji_indices[g_auto_emoji_pos];
+        g_auto_emoji_pos = (g_auto_emoji_pos + 1) %
+            (sizeof(g_auto_emoji_indices) / sizeof(g_auto_emoji_indices[0]));
+    }
+
     g_idle.emoji_idx = idx;
     g_idle.keyframe  = 0;
     g_idle.on_exit   = on_exit;
-    g_next_emoji     = (idx + 1) % EMOJI_COUNT;
 
     /* First frame of the chosen emoji */
     const unsigned char *first = emoji_blob_data +
@@ -101,8 +150,8 @@ lv_obj_t *emoji_idle_create(lv_obj_t *parent, emoji_idle_exit_cb_t on_exit)
     lv_obj_align(g_idle.img, LV_ALIGN_CENTER, 0, 0);
     lv_image_set_src(g_idle.img, &g_dsc);
 
-    /* 150ms = ~6.7fps, smooth for 10-frame animation */
-    g_idle.timer = lv_timer_create(anim_cb, 150, NULL);
+    /* 300ms = ~3.3fps, slower animation playback */
+    g_idle.timer = lv_timer_create(anim_cb, 300, NULL);
     lv_timer_set_repeat_count(g_idle.timer, -1);
     lv_obj_add_event_cb(g_idle.overlay, click_cb, LV_EVENT_CLICKED, NULL);
 

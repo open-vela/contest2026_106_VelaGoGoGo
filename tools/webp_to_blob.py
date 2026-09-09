@@ -11,7 +11,7 @@ Output:
     app/home_scense/emoji_blob.h    — C constants
 
 Layout:
-    13 emojis (00.webp..13.webp, skipping 10), 5 keyframes each (static = 1).
+    1 emoji (02.webp), up to 5 keyframes (static = 1).
     Each frame: 320×132 RGB565 (84,480 bytes).
     Access: emoji_blob_data + (emoji_idx * 5 + keyframe) * 84480
 """
@@ -55,8 +55,7 @@ def main():
     parser.add_argument("dst_dir", help="Output directory (e.g. app/home_scense/)")
     args = parser.parse_args()
 
-    names = ["00", "01", "02", "03", "04", "05", "06", "07",
-             "08", "09", "11", "12", "13"]
+    names = ["02", "03", "drink", "exercise", "listen", "speak"]
     frame_counts = []
     all_data = bytearray()
 
@@ -96,7 +95,8 @@ def main():
     # Write C header
     h_path = os.path.join(args.dst_dir, "emoji_blob.h")
     with open(h_path, "w") as f:
-        f.write(f"// Auto-generated — {len(names)} emoji, {total_frames} frames\n")
+        f.write("#ifndef EMOJI_BLOB_H\n#define EMOJI_BLOB_H\n\n")
+        f.write(f"// Auto-generated — {len(names)} emoji, {total_frames} frames\\n")
         f.write(f"// RGB565 {FRAME_W}x{FRAME_H}  {frame_bytes} bytes/frame\n")
         f.write(f"#define EMOJI_COUNT        {len(names)}\n")
         f.write(f"#define EMOJI_MAX_KEYFRAMES {KEYFRAMES}\n")
@@ -107,9 +107,13 @@ def main():
         f.write("extern const unsigned char emoji_blob_data[];\n")
         f.write("extern const unsigned char emoji_blob_end[];\n")
         f.write("\n")
-        f.write("/* Keyframes per emoji (order: 00.webp..13.webp) */\n")
+        f.write("static const char *const g_emoji_names[EMOJI_COUNT] = {\n")
+        f.write("    " + ", ".join('"' + name + '"' for name in names) + "\n};\n")
+        f.write("\n")
+        f.write("/* Keyframes per emoji (resource order) */\n")
         f.write("static const int g_emoji_frames[EMOJI_COUNT] = {\n")
         f.write("    " + ", ".join(str(c) for c in frame_counts) + "\n};\n")
+        f.write("\n#endif /* EMOJI_BLOB_H */\n")
 
     blob_mb = len(all_data) / (1024 * 1024)
     print(f"Generated: {blob_path} ({blob_mb:.1f} MB, {total_frames} frames)")

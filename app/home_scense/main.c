@@ -13,6 +13,7 @@
 #include "sensor.h"
 #include "led_control.h"
 #include "ui_emoji_idle.h"
+#include "home_scense_emoji_ipc.h"
 #include "ui_voice.h"
 #include "ui_settings.h"
 #include "ui_status_bar.h"
@@ -337,6 +338,13 @@ int main(int argc, FAR char *argv[])
     lv_timer_t *idle_timer = lv_timer_create(idle_check_cb, 1000, NULL);
     lv_timer_set_repeat_count(idle_timer, -1);
 
+    /* Emoji IPC poll — consume cross-app commands on the LVGL thread. */
+    if (home_scense_emoji_ipc_init() == 0) {
+        lv_timer_t *emoji_ipc_timer = lv_timer_create(
+            home_scense_emoji_ipc_poll, 100, NULL);
+        if (emoji_ipc_timer) lv_timer_set_repeat_count(emoji_ipc_timer, -1);
+    }
+
     /* Claude status poll — consume MQTT state on the LVGL thread */
     lv_timer_t *status_timer = lv_timer_create(
         claude_mqtt_poll, 100, NULL);
@@ -359,6 +367,9 @@ int main(int argc, FAR char *argv[])
     lv_timer_t *tt = lv_timer_create(update_time_cb, 1000, NULL);
     if (tt) lv_timer_set_repeat_count(tt, -1);
 
+    /* Play the selected startup emoji once the complete UI is ready. */
+    g_idle_active = emoji_idle_create(lv_scr_act(), on_idle_exit) != NULL;
+
     /* Main loop */
 #ifdef CONFIG_LV_USE_NUTTX_LIBUV
     lv_nuttx_uv_loop(&ui_loop, &result);
@@ -380,6 +391,7 @@ int main(int argc, FAR char *argv[])
 #ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
     doubao_voice_deinit();
 #endif
+    home_scense_emoji_ipc_deinit();
     claude_mqtt_deinit();
     led_adapter_deinit();
     return 0;
