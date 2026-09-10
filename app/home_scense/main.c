@@ -18,7 +18,6 @@
 #include "ui_settings.h"
 #include "ui_status_bar.h"
 #include "claude_mqtt.h"
-#include "ui_claude_status.h"
 #include "wifi_status.h"
 #ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
 #include "doubao/doubao_voice.h"
@@ -144,6 +143,14 @@ static void on_idle_exit(void)
 static void idle_check_cb(lv_timer_t *timer)
 {
     (void)timer;
+
+    /* A live status feed (Claude MQTT / 豆包语音)已通过仲裁接口占用了同一个
+     * emoji 叠层。此时不要在其上再叠加待机轮播,否则会周期性把状态动画冲掉。 */
+    if (emoji_idle_status_active()) return;
+
+    if (g_idle_active && !emoji_idle_is_active()) {
+        g_idle_active = false;
+    }
     if (g_idle_active) return;
 
 #ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
@@ -285,7 +292,6 @@ int main(int argc, FAR char *argv[])
 
     init_fonts();
     create_main_screen();
-    ui_claude_status_init(lv_scr_act());
 #ifdef CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE
     doubao_voice_init();
 #endif

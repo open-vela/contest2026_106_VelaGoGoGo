@@ -9,6 +9,7 @@
 
 #include "ui_voice.h"
 #include "main.h"
+#include "ui_emoji_idle.h"
 #include "wifi_status.h"
 #include "doubao/doubao_voice.h"
 
@@ -25,6 +26,37 @@ static lv_obj_t *g_cur_ai_bubble;
 static unsigned  g_cur_turn;
 static char g_last_user[DOUBAO_TEXT_MAX];
 static char g_last_reply[DOUBAO_REPLY_MAX];
+
+typedef enum {
+    VOICE_ANIMATION_NONE,
+    VOICE_ANIMATION_LISTEN,
+    VOICE_ANIMATION_SPEAK,
+} voice_animation_t;
+
+static voice_animation_t g_voice_animation;
+
+static void update_voice_animation(doubao_voice_state_t state)
+{
+    voice_animation_t next = VOICE_ANIMATION_NONE;
+    const char *name = NULL;
+
+    if (state == DOUBAO_VOICE_LISTENING ||
+        state == DOUBAO_VOICE_RECORDING) {
+        next = VOICE_ANIMATION_LISTEN;
+        name = "listen";
+    } else if (state == DOUBAO_VOICE_PLAYING) {
+        next = VOICE_ANIMATION_SPEAK;
+        name = "speak";
+    }
+
+    if (next == g_voice_animation) return;
+
+    /* Route through the priority arbiter as the VOICE source: listen/speak
+     * outrank the Claude MQTT status, so an active conversation is never
+     * masked by the agent状态动画;NULL 时撤回本源请求,交回给 Claude/待机。 */
+    emoji_idle_request(EMOJI_SRC_VOICE, name);
+    g_voice_animation = next;
+}
 
 /* 新增/更新气泡:传入已存在的 bubble 则更新其文字,否则新建并返回。 */
 static lv_obj_t *set_bubble(lv_obj_t *existing, const char *prefix,
@@ -152,6 +184,7 @@ void ui_voice_refresh(lv_timer_t *timer)
     (void)timer;
     if (!g_action) return;
     doubao_voice_get_snapshot(&snapshot);
+    update_voice_animation(snapshot.state);
 
     /* 新一轮开始:上一轮气泡已沉淀为历史,清空当前轮引用 */
     if (snapshot.turn_seq != g_cur_turn) {

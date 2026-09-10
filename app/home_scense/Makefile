@@ -5,9 +5,9 @@ include $(APPDIR)/Make.defs
 
 MAINSRC = main.c
 CSRCS   = sensor.c ui_main.c ui_light.c ui_about.c led_control.c ui_emoji_idle.c \
-         home_scense_emoji_ipc.c claude_mqtt.c ui_claude_status.c ui_status_bar.c \
+         home_scense_emoji_ipc.c claude_mqtt.c ui_status_bar.c \
          ui_settings.c wifi_status.c ac_ir_control.c
-ASRCS   = emoji_blob.S claude_idle.S claude_thinking.S claude_executing.S
+ASRCS   = emoji_blob.S
 
 ifeq ($(CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE),y)
 CSRCS += ui_voice.c doubao/doubao_voice.c doubao/doubao_protocol.c \
