@@ -33,6 +33,11 @@ static bool           g_named_play;  /* keep a named emoji selected */
 static char g_src_name[EMOJI_SRC_COUNT][EMOJI_NAME_MAX];
 static char g_status_shown[EMOJI_NAME_MAX];
 
+/* 用户点掉状态叠层后,记住被点掉的状态名并抑制其重建,直到状态发生新变化,
+ * 让用户能停留在对话页;否则每 100ms 的状态轮询会立刻把叠层重建回来。 */
+static bool g_status_dismissed;
+static char g_dismissed_name[EMOJI_NAME_MAX];
+
 /* Only these resources participate in automatic startup/idle rotation. */
 static const int g_auto_emoji_indices[] = { 0, 1 }; /* 02, 03 */
 static size_t g_auto_emoji_pos;
@@ -68,11 +73,28 @@ static void anim_cb(lv_timer_t *t)
 static void click_cb(lv_event_t *e)
 {
     (void)e;
+
+    /* 当前叠层是否由某个状态源(Claude/语音)持有。状态叠层的 on_exit 为 NULL,
+     * 且每 100ms 的状态轮询会重建它,需专门抑制;待机轮播则照旧走 on_exit。 */
+    bool was_status = (g_status_shown[0] != '\0');
+    emoji_idle_exit_cb_t on_exit = g_idle.on_exit;
+
     if (g_idle.timer)   { lv_timer_del(g_idle.timer); }
     if (g_idle.overlay) { lv_obj_del(g_idle.overlay); }
-    if (g_idle.on_exit) g_idle.on_exit();
     memset(&g_idle, 0, sizeof(g_idle));
     g_named_play = false;
+
+    if (was_status) {
+        /* 记住被点掉的状态名并抑制重建,直到状态变化(见 status_apply);同时
+         * 刷新活动时间,避免退回对话页后立刻又被待机计时器弹出待机轮播。 */
+        g_status_dismissed = true;
+        strncpy(g_dismissed_name, g_status_shown, EMOJI_NAME_MAX - 1);
+        g_dismissed_name[EMOJI_NAME_MAX - 1] = '\0';
+        g_status_shown[0] = '\0';
+        home_record_activity();
+    }
+
+    if (on_exit) on_exit();
 }
 
 /*-----------------------------------------------------------------------
@@ -187,8 +209,14 @@ static void status_apply(void)
     }
 
     if (winner) {
-        /* Re-assert when the winner changed, or when the overlay was dismissed
-         * (tap) / replaced out from under us: a status feed is live, so it keeps
+        /* 用户已手动点掉状态叠层:只要仍是同一个状态就不重建,让用户停留在
+         * 对话页;winner 变成别的状态(新交互/新状态)时解除抑制,恢复显示。 */
+        if (g_status_dismissed) {
+            if (strcmp(winner, g_dismissed_name) == 0) return;
+            g_status_dismissed = false;
+        }
+        /* Re-assert when the winner changed, or when the overlay was
+         * replaced out from under us: a status feed is live, so it keeps
          * reflecting state rather than staying gone. */
         if (strcmp(winner, g_status_shown) != 0 || !emoji_idle_is_active()) {
             if (emoji_idle_play(lv_scr_act(), winner, NULL)) {
@@ -196,10 +224,11 @@ static void status_apply(void)
                 g_status_shown[EMOJI_NAME_MAX - 1] = '\0';
             }
         }
-    } else if (g_status_shown[0]) {
-        /* No source wants the overlay: release it so the idle rotation
-         * (main.c) can take over again. */
+    } else if (g_status_shown[0] || g_status_dismissed) {
+        /* No source wants the overlay: release it (and clear any dismiss
+         * suppression) so the idle rotation (main.c) can take over again. */
         g_status_shown[0] = '\0';
+        g_status_dismissed = false;
         emoji_idle_stop();
     }
 }
