@@ -1,5 +1,5 @@
 #include "claude_mqtt.h"
-#include "ui_claude_status.h"
+#include "ui_emoji_idle.h"
 #include "main.h"
 #include "led_control.h"
 #include <mqtt.h>
@@ -166,6 +166,17 @@ void claude_mqtt_init(void)
     syslog(LOG_INFO, "[claude-mqtt] worker created\n");
 }
 
+/* Map an MQTT status to the emoji_blob resource driving the shared animation,
+ * or NULL to withdraw the Claude request (overlay released -> idle rotation).
+ * Names must match g_emoji_names in emoji_blob.h. */
+static const char *claude_emoji_name(const char *state)
+{
+    if (!strcmp(state, "executing")) return "claude-executing";
+    if (!strcmp(state, "thinking"))  return "claude-thinking";
+    if (!strcmp(state, "idle"))      return "claude-idle";
+    return NULL;   /* "default" / offline: no agent animation */
+}
+
 void claude_mqtt_poll(lv_timer_t *timer)
 {
     static uint32_t lease;
@@ -178,7 +189,9 @@ void claude_mqtt_poll(lv_timer_t *timer)
     else strcpy(state, g_state);
     pthread_mutex_unlock(&g_lock);
     if (changed || !strcmp(state, "default") || lv_tick_elaps(lease) < LEASE_SECONDS * 1000) {
-        ui_claude_status_set(state);
+        /* 通过 emoji_idle 仲裁接口投递 Agent 状态动画。CLAUDE 源优先级低于
+         * VOICE:豆包 listen/speak 期间语音动画胜出,不会被状态动画抢占。 */
+        emoji_idle_request(EMOJI_SRC_CLAUDE, claude_emoji_name(state));
         /* 手电筒开启时独占 LED,状态灯只更新 UI 不抢灯(否则会周期性熄灭手电筒)。 */
         if (!g_flashlight_override) {
             if (!strcmp(state, "default")) { led_off(); }
@@ -187,7 +200,7 @@ void claude_mqtt_poll(lv_timer_t *timer)
         }
     } else {
         pthread_mutex_lock(&g_lock); strcpy(g_state, "default"); pthread_mutex_unlock(&g_lock);
-        ui_claude_status_set("default");
+        emoji_idle_request(EMOJI_SRC_CLAUDE, NULL);
         if (!g_flashlight_override) { led_off(); }
     }
 }
@@ -198,5 +211,4 @@ void claude_mqtt_deinit(void)
     g_running = false;
     pthread_join(g_thread, NULL);
     g_started = false;
-    ui_claude_status_deinit();
 }

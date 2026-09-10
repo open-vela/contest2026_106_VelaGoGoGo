@@ -55,7 +55,7 @@ def main():
     parser.add_argument("dst_dir", help="Output directory (e.g. app/home_scense/)")
     args = parser.parse_args()
 
-    names = ["02", "03", "drink", "exercise", "listen", "speak"]
+    names = ["02", "03", "claude-executing", "claude-idle", "claude-thinking", "listen", "speak"]
     frame_counts = []
     all_data = bytearray()
 
@@ -80,8 +80,9 @@ def main():
     frame_bytes = FRAME_W * FRAME_H * 2
     total_frames = len(all_data) // frame_bytes
 
-    # Write assembler stub (absolute path required by incbin)
-    src_abs = os.path.abspath(blob_path)
+    # Write assembler stub (.bin lives beside the .S, so use a relative path;
+    # the assembler resolves it against the .S file's directory)
+    blob_name = os.path.basename(blob_path)
     s_path = os.path.join(args.dst_dir, "emoji_blob.S")
     with open(s_path, "w") as f:
         f.write('    .section .rodata.emoji,"a",%progbits\n')
@@ -89,7 +90,7 @@ def main():
         f.write('    .global emoji_blob_end\n')
         f.write('    .balign 4\n')
         f.write('emoji_blob_data:\n')
-        f.write(f'    .incbin "{src_abs}"\n')
+        f.write(f'    .incbin "{blob_name}"\n')
         f.write('emoji_blob_end:\n')
 
     # Write C header

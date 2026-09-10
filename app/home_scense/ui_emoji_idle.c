@@ -22,6 +22,17 @@ static lv_image_dsc_t g_dsc;
 static int            g_next_emoji;  /* next automatic emoji index */
 static bool           g_named_play;  /* keep a named emoji selected */
 
+/*-----------------------------------------------------------------------
+ * Status-source arbitration.
+ * Each status source parks the emoji name it wants (or "" for none);
+ * the highest-priority non-empty request owns the overlay. g_status_shown
+ * remembers what is currently displayed on behalf of a source so repeated
+ * requests (polled every 100-150ms) don't restart the animation.
+ *---------------------------------------------------------------------*/
+#define EMOJI_NAME_MAX 24
+static char g_src_name[EMOJI_SRC_COUNT][EMOJI_NAME_MAX];
+static char g_status_shown[EMOJI_NAME_MAX];
+
 /* Only these resources participate in automatic startup/idle rotation. */
 static const int g_auto_emoji_indices[] = { 0, 1 }; /* 02, 03 */
 static size_t g_auto_emoji_pos;
@@ -84,6 +95,11 @@ void emoji_idle_stop(void)
     if (g_idle.overlay) lv_obj_del(g_idle.overlay);
     memset(&g_idle, 0, sizeof(g_idle));
     g_named_play = false;
+}
+
+bool emoji_idle_is_active(void)
+{
+    return g_idle.overlay != NULL;
 }
 
 lv_obj_t *emoji_idle_play(lv_obj_t *parent, const char *name,
@@ -156,4 +172,52 @@ lv_obj_t *emoji_idle_create(lv_obj_t *parent, emoji_idle_exit_cb_t on_exit)
     lv_obj_add_event_cb(g_idle.overlay, click_cb, LV_EVENT_CLICKED, NULL);
 
     return g_idle.overlay;
+}
+
+/*-----------------------------------------------------------------------
+ * Status-source arbitration (priority: VOICE > CLAUDE)
+ *---------------------------------------------------------------------*/
+static void status_apply(void)
+{
+    const char *winner = NULL;
+
+    /* Highest enum value wins; first non-empty request from the top. */
+    for (int s = EMOJI_SRC_COUNT - 1; s >= 0; s--) {
+        if (g_src_name[s][0]) { winner = g_src_name[s]; break; }
+    }
+
+    if (winner) {
+        /* Re-assert when the winner changed, or when the overlay was dismissed
+         * (tap) / replaced out from under us: a status feed is live, so it keeps
+         * reflecting state rather than staying gone. */
+        if (strcmp(winner, g_status_shown) != 0 || !emoji_idle_is_active()) {
+            if (emoji_idle_play(lv_scr_act(), winner, NULL)) {
+                strncpy(g_status_shown, winner, EMOJI_NAME_MAX - 1);
+                g_status_shown[EMOJI_NAME_MAX - 1] = '\0';
+            }
+        }
+    } else if (g_status_shown[0]) {
+        /* No source wants the overlay: release it so the idle rotation
+         * (main.c) can take over again. */
+        g_status_shown[0] = '\0';
+        emoji_idle_stop();
+    }
+}
+
+void emoji_idle_request(emoji_source_t src, const char *name)
+{
+    if ((unsigned)src >= EMOJI_SRC_COUNT) return;
+
+    if (name && name[0]) {
+        strncpy(g_src_name[src], name, EMOJI_NAME_MAX - 1);
+        g_src_name[src][EMOJI_NAME_MAX - 1] = '\0';
+    } else {
+        g_src_name[src][0] = '\0';
+    }
+    status_apply();
+}
+
+bool emoji_idle_status_active(void)
+{
+    return g_status_shown[0] != '\0';
 }

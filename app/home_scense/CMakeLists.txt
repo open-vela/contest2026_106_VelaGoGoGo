@@ -11,7 +11,6 @@ if(CONFIG_LVX_USE_DEMO_CONTEST2026_106_HELLO_APP)
     ui_emoji_idle.c
     home_scense_emoji_ipc.c
     claude_mqtt.c
-    ui_claude_status.c
     ui_status_bar.c
     ui_settings.c
     wifi_status.c
@@ -20,7 +19,7 @@ if(CONFIG_LVX_USE_DEMO_CONTEST2026_106_HELLO_APP)
     ${CMAKE_CURRENT_LIST_DIR}/../../../../apps/netutils/mqttc/MQTT-C/src/mqtt.c
     ${CMAKE_CURRENT_LIST_DIR}/../../../../apps/netutils/mqttc/MQTT-C/src/mqtt_pal.c)
   list(APPEND home_scense_srcs
-    emoji_blob.S claude_idle.S claude_thinking.S claude_executing.S)
+    emoji_blob.S)
 
   if(CONFIG_LVX_USE_DEMO_CONTEST2026_106_DOUBAO_VOICE)
     list(APPEND home_scense_srcs
