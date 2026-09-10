@@ -547,6 +547,20 @@ static bool voice_intent_handle(const char *text)
       return false;
     }
 
+  /* 退出会话意图:全双工对话中说"退出/退下",等价于点击"停止对话"——调
+   * doubao_voice_stop() 置 talking=false 并打断在播 TTS,回到待命。放在所有
+   * 意图最前(最高优先级)。two-pass ASR 会重复回传本句十几帧,
+   * doubao_voice_stop 幂等,逐帧调用无副作用;仅 talking 时动作以避免多余日志。 */
+  if (strstr(text, "退出") != NULL || strstr(text, "退下") != NULL)
+    {
+      if (is_talking())
+        {
+          DOUBAO_LOG("voice intent: EXIT conversation (\"%s\")", text);
+          doubao_voice_stop();
+        }
+      return true;
+    }
+
   /* 学习触发词:说"学习空调/学习开空调"抓开机帧,"学习关空调"抓关机帧。
    * 抓到的数组打印到串口日志(见 ac_ir_learn_dump), 需含"学习"+"空调"。
    * 放在开/关控制分支之前, 否则"学习关空调"里的"关空调"会被当成关机指令。 */
