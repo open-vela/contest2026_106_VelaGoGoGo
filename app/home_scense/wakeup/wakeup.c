@@ -58,8 +58,8 @@
  * 0.88 + 连续4窗(400ms 持续): 困难负样本 neg_zh/neg_jul/neg_board + mixed 误报全 0,
  * val/test 段唤醒率 84.6% (0/-6/-12dB 一致); rec.pcm 两次真唤醒 0dB 与 -6dB 均 2/2 命中
  * (30.2s/33.8s)。阈值上限受 rec.pcm -6dB 第二次峰值(0.966)约束, >0.88 会漏。重训后需重调。 */
-#define WAKE_THR         0.880f        /* 唤醒阈值 */
-#define WAKE_CONSEC      4             /* 连续 N 窗超阈才判唤醒 (1帧=100ms) */
+#define WAKE_THR         0.995f        /* 唤醒阈值 */
+#define WAKE_CONSEC      6             /* 连续 N 窗超阈才判唤醒 (1帧=100ms) */
 #define WAKE_HOP_SAMPLES (MEL_SR / 10) /* 100ms 步长 */
 #define WAKE_MIN_DIST    12            /* 两次唤醒最小间隔(帧, 1帧=100ms) */
 
@@ -286,6 +286,8 @@ static void *wakeup_thread(void *arg) {
     predict(mel, p3);
     float prob = p3[0];
     ++f;
+
+    //syslog(LOG_INFO,"[wakeup]:current prob=%.3f\n",(double)prob);
 
     /* 连续 WAKE_CONSEC 窗超阈才判唤醒: 误报多为孤立单窗尖峰,
      * 真唤醒词会连续 10+ 窗超阈。 */
