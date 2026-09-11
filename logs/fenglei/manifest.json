@@ -1,0 +1,129 @@
+{
+  "schema_version": "1.0",
+  "team_id": "contest2026_106_openvela",
+  "github_login": "fenglei",
+  "generator": "claude-code-collector@1.3.0",
+  "updated_at": "2026-09-11T03:14:36.561507Z",
+  "sessions": [
+    {
+      "session_id": "38435405-dec7-4b36-990b-9d22a7ad7a15",
+      "tool": "claude-code",
+      "started_at": "2026-09-10T06:38:29.100Z",
+      "last_event_at": "2026-09-10T06:38:29.681Z",
+      "event_count": 21,
+      "raw_event_count": 21,
+      "file_path": "logs/fenglei/2026-09-10/claude-code__38435405-dec7-4b36-990b-9d22a7ad7a15.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "<unknown>"
+    },
+    {
+      "session_id": "4ae602d0-cd49-446f-8abb-c9c60ae489bc",
+      "tool": "claude-code",
+      "started_at": "2026-09-10T06:44:32.701Z",
+      "last_event_at": "2026-09-10T06:44:32.701Z",
+      "event_count": 9,
+      "raw_event_count": 9,
+      "file_path": "logs/fenglei/2026-09-10/claude-code__4ae602d0-cd49-446f-8abb-c9c60ae489bc.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "<unknown>"
+    },
+    {
+      "session_id": "7ab103c8-9866-4d86-b86a-a6274feeca52",
+      "tool": "claude-code",
+      "started_at": "2026-09-09T11:04:45.111Z",
+      "last_event_at": "2026-09-10T06:25:25.705Z",
+      "event_count": 841,
+      "raw_event_count": 841,
+      "file_path": "logs/fenglei/2026-09-09/claude-code__7ab103c8-9866-4d86-b86a-a6274feeca52.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/gpt-5.6-sol"
+    },
+    {
+      "session_id": "81138eb3-e9c3-45a7-81b2-a85f2cde2de2",
+      "tool": "claude-code",
+      "started_at": "2026-09-10T12:04:29.027Z",
+      "last_event_at": "2026-09-10T12:19:23.750Z",
+      "event_count": 95,
+      "raw_event_count": 95,
+      "file_path": "logs/fenglei/2026-09-10/claude-code__81138eb3-e9c3-45a7-81b2-a85f2cde2de2.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/claude-opus-4-8"
+    },
+    {
+      "session_id": "a0ca16cc-b8de-4303-8912-f02174621c7b",
+      "tool": "claude-code",
+      "started_at": "2026-09-10T06:46:23.777Z",
+      "last_event_at": "2026-09-10T13:26:51.567Z",
+      "event_count": 1664,
+      "raw_event_count": 1664,
+      "file_path": "logs/fenglei/2026-09-10/claude-code__a0ca16cc-b8de-4303-8912-f02174621c7b.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/claude-opus-4-8"
+    },
+    {
+      "session_id": "b8a3b746-9ef2-482a-95c5-bfdd34d3ae40",
+      "tool": "claude-code",
+      "started_at": "2026-09-10T06:44:45.100Z",
+      "last_event_at": "2026-09-10T06:49:08.833Z",
+      "event_count": 58,
+      "raw_event_count": 58,
+      "file_path": "logs/fenglei/2026-09-10/claude-code__b8a3b746-9ef2-482a-95c5-bfdd34d3ae40.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/claude-opus-4-8"
+    },
+    {
+      "session_id": "beccc52d-7f0f-43d9-be23-0b5b982d942a",
+      "tool": "claude-code",
+      "started_at": "2026-09-10T06:26:06.599Z",
+      "last_event_at": "2026-09-10T06:26:25.969Z",
+      "event_count": 32,
+      "raw_event_count": 32,
+      "file_path": "logs/fenglei/2026-09-10/claude-code__beccc52d-7f0f-43d9-be23-0b5b982d942a.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "<unknown>"
+    },
+    {
+      "session_id": "c832af4a-e63d-471f-a7d9-6dc6e391d71a",
+      "tool": "claude-code",
+      "started_at": "2026-09-10T12:49:25.655Z",
+      "last_event_at": "2026-09-10T13:36:02.705Z",
+      "event_count": 188,
+      "raw_event_count": 188,
+      "file_path": "logs/fenglei/2026-09-10/claude-code__c832af4a-e63d-471f-a7d9-6dc6e391d71a.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/claude-opus-4-8"
+    },
+    {
+      "session_id": "deaf5a98-5ecb-4826-be55-7a7891098706",
+      "tool": "claude-code",
+      "started_at": "2026-09-10T12:19:51.260Z",
+      "last_event_at": "2026-09-11T03:14:36.354Z",
+      "event_count": 524,
+      "raw_event_count": 524,
+      "file_path": "logs/fenglei/2026-09-10/claude-code__deaf5a98-5ecb-4826-be55-7a7891098706.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/claude-opus-4-8"
+    },
+    {
+      "session_id": "f2a81e7b-97c6-476a-b48d-32a6e45be4a9",
+      "tool": "claude-code",
+      "started_at": "2026-09-10T08:43:05.699Z",
+      "last_event_at": "2026-09-10T09:24:37.905Z",
+      "event_count": 139,
+      "raw_event_count": 139,
+      "file_path": "logs/fenglei/2026-09-10/claude-code__f2a81e7b-97c6-476a-b48d-32a6e45be4a9.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/claude-opus-4-8"
+    }
+  ]
+}
