@@ -1,0 +1,29 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1788595087.271182 2467747 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+I0000 00:00:1788595087.299221 2467747 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1788595088.103203 2467747 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+/home/mi/.local/lib/python3.12/site-packages/keras/src/trainers/data_adapters/py_dataset_adapter.py:121: UserWarning: Your `PyDataset` class should call `super().__init__(**kwargs)` in its constructor. `**kwargs` can include `workers`, `use_multiprocessing`, `max_queue_size`. Do not pass these arguments to `fit()`, as they will be ignored.
+  self._warn_if_super_not_called()
+I0000 00:00:1788595089.161450 2467747 generator_dataset_op.cc:213] Memory patch applied: M_TRIM_THRESHOLD=128 kb was set.
+class_weight: {0: np.float64(2.7016666666666667), 1: np.float64(0.42815636555731645), 2: np.float64(3.39832285115304)} classes: [np.str_('target'), np.str_('unknown'), np.str_('background')]
+seed 42: 部署阈值=0.5687 val召回 0dB=0.500 -6dB=0.667 score=0.583 同嗓音负样本 max=0.242 误报率@部署阈值=0.0%
+seed 3407: 部署阈值=0.6313 val召回 0dB=0.500 -6dB=0.500 score=0.500 同嗓音负样本 max=0.101 误报率@部署阈值=0.0%
+选用 seed 42 (score=0.583)
+
+TEST acc=0.9807
+部署阈值=0.5687 (F1最优=0.5687) test@部署阈值: 误报=2 漏报=1
+val target 召回@部署阈值: 0dB=0.500 -6dB=0.667
+              precision    recall  f1-score   support
+
+      target     0.7500    0.8571    0.8000         7
+     unknown     0.9952    0.9858    0.9905       212
+  background     0.9512    0.9750    0.9630        40
+
+    accuracy                         0.9807       259
+   macro avg     0.8988    0.9393    0.9178       259
+weighted avg     0.9818    0.9807    0.9811       259
+
+已保存 metrics.json
+已保存 confusion_matrix.png

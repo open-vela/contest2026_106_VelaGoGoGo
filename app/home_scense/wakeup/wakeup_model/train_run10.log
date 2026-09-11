@@ -1,0 +1,33 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1788596853.625966 2577731 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+I0000 00:00:1788596853.654654 2577731 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1788596854.456822 2577731 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+/home/mi/.local/lib/python3.12/site-packages/keras/src/trainers/data_adapters/py_dataset_adapter.py:121: UserWarning: Your `PyDataset` class should call `super().__init__(**kwargs)` in its constructor. `**kwargs` can include `workers`, `use_multiprocessing`, `max_queue_size`. Do not pass these arguments to `fit()`, as they will be ignored.
+  self._warn_if_super_not_called()
+I0000 00:00:1788596855.728435 2577731 generator_dataset_op.cc:213] Memory patch applied: M_TRIM_THRESHOLD=128 kb was set.
+class_weight: {0: np.float64(3.368333333333333), 1: np.float64(0.40533493782591257), 2: np.float64(4.236897274633123)} classes: [np.str_('target'), np.str_('unknown'), np.str_('background')]
+seed 42: 部署阈值=0.4436 val召回 0dB=0.667 -6dB=0.833 score=0.750 同嗓音负样本 max=0.223 误报率@部署阈值=0.0%
+seed 7: 部署阈值=0.4127 val召回 0dB=0.667 -6dB=0.833 score=0.750 同嗓音负样本 max=0.026 误报率@部署阈值=0.0%
+seed 2026: 部署阈值=0.6125 val召回 0dB=0.667 -6dB=0.833 score=0.750 同嗓音负样本 max=0.011 误报率@部署阈值=0.0%
+seed 123: 部署阈值=0.1874 val召回 0dB=0.667 -6dB=0.833 score=0.750 同嗓音负样本 max=0.080 误报率@部署阈值=0.0%
+seed 999: 部署阈值=0.1833 val召回 0dB=0.667 -6dB=0.833 score=0.750 同嗓音负样本 max=0.038 误报率@部署阈值=0.0%
+seed 3407: 部署阈值=0.9110 val召回 0dB=0.667 -6dB=0.833 score=0.750 同嗓音负样本 max=0.020 误报率@部署阈值=0.0%
+选用 seed 42 (score=0.750)
+
+TEST acc=0.9923
+部署阈值=0.4436 (F1最优=0.4436) test@部署阈值: 误报=0 漏报=1
+val target 召回@部署阈值: 0dB=0.667 -6dB=0.833
+              precision    recall  f1-score   support
+
+      target     1.0000    0.8571    0.9231         7
+     unknown     1.0000    0.9953    0.9976       212
+  background     0.9524    1.0000    0.9756        40
+
+    accuracy                         0.9923       259
+   macro avg     0.9841    0.9508    0.9654       259
+weighted avg     0.9926    0.9923    0.9922       259
+
+已保存 metrics.json
+已保存 confusion_matrix.png

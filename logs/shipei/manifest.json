@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0",
+  "team_id": "contest2026_106_openvela",
+  "github_login": "shipei",
+  "generator": "export_contest_logs.py@1.0",
+  "updated_at": "2026-09-11T03:28:25.093692Z",
+  "sessions": [
+    {
+      "session_id": "0cd37b0f-0b3b-4002-8149-1ee7c2125c10",
+      "tool": "claude-code",
+      "started_at": "2026-09-05T07:38:31.812Z",
+      "last_event_at": "2026-09-05T08:08:46.894Z",
+      "event_count": 170,
+      "raw_event_count": 248,
+      "file_path": "logs/shipei/2026-09-05/claude-code__0cd37b0f-0b3b-4002-8149-1ee7c2125c10.jsonl",
+      "collection_mode": "manual",
+      "health": "ok",
+      "model": "glm-5.3"
+    },
+    {
+      "session_id": "5e8e4d16-63a7-4452-b084-600efa6b1080",
+      "tool": "claude-code",
+      "started_at": "2026-09-05T09:16:45.522Z",
+      "last_event_at": "2026-09-05T09:22:34.079Z",
+      "event_count": 34,
+      "raw_event_count": 70,
+      "file_path": "logs/shipei/2026-09-05/claude-code__5e8e4d16-63a7-4452-b084-600efa6b1080.jsonl",
+      "collection_mode": "manual",
+      "health": "ok",
+      "model": "pa/claude-opus-4-8"
+    },
+    {
+      "session_id": "817cc831-b7b8-4f9d-a2ed-f40ad0d9a52b",
+      "tool": "claude-code",
+      "started_at": "2026-09-05T03:21:37.723Z",
+      "last_event_at": "2026-09-05T03:57:27.746Z",
+      "event_count": 228,
+      "raw_event_count": 322,
+      "file_path": "logs/shipei/2026-09-05/claude-code__817cc831-b7b8-4f9d-a2ed-f40ad0d9a52b.jsonl",
+      "collection_mode": "manual",
+      "health": "ok",
+      "model": "glm-5.3"
+    },
+    {
+      "session_id": "8e297585-519b-4044-a997-4d6d0e384d5b",
+      "tool": "claude-code",
+      "started_at": "2026-09-11T01:58:21.147Z",
+      "last_event_at": "2026-09-11T03:15:46.056Z",
+      "event_count": 118,
+      "raw_event_count": 199,
+      "file_path": "logs/shipei/2026-09-11/claude-code__8e297585-519b-4044-a997-4d6d0e384d5b.jsonl",
+      "collection_mode": "manual",
+      "health": "ok",
+      "model": "kimi-k3"
+    },
+    {
+      "session_id": "628c8cca-fe75-4328-bfde-2e07fccfd01a",
+      "tool": "claude-code",
+      "started_at": "2026-09-05T02:54:02.911Z",
+      "last_event_at": "2026-09-05T08:28:35.627Z",
+      "event_count": 1173,
+      "raw_event_count": 1830,
+      "file_path": "logs/shipei/2026-09-05/claude-code__628c8cca-fe75-4328-bfde-2e07fccfd01a.jsonl",
+      "collection_mode": "manual",
+      "health": "ok",
+      "model": "glm-5.3"
+    },
+    {
+      "session_id": "abbfdf9d-e1dc-4bb6-a8b4-a703b4f5a100",
+      "tool": "claude-code",
+      "started_at": "2026-09-05T08:30:05.674Z",
+      "last_event_at": "2026-09-11T02:42:43.440Z",
+      "event_count": 745,
+      "raw_event_count": 1254,
+      "file_path": "logs/shipei/2026-09-05/claude-code__abbfdf9d-e1dc-4bb6-a8b4-a703b4f5a100.jsonl",
+      "collection_mode": "manual",
+      "health": "ok",
+      "model": "glm-5.3"
+    }
+  ]
+}
