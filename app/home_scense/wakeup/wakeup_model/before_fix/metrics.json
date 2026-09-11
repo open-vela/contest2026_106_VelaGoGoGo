@@ -1,0 +1,70 @@
+{
+  "classes": [
+    "target",
+    "unknown",
+    "background"
+  ],
+  "test_accuracy": 0.9735294117647059,
+  "confusion_matrix": [
+    [
+      96,
+      0,
+      4
+    ],
+    [
+      3,
+      196,
+      1
+    ],
+    [
+      0,
+      1,
+      39
+    ]
+  ],
+  "report": {
+    "target": {
+      "precision": 0.9696969696969697,
+      "recall": 0.96,
+      "f1-score": 0.964824120603015,
+      "support": 100.0
+    },
+    "unknown": {
+      "precision": 0.9949238578680203,
+      "recall": 0.98,
+      "f1-score": 0.9874055415617129,
+      "support": 200.0
+    },
+    "background": {
+      "precision": 0.8863636363636364,
+      "recall": 0.975,
+      "f1-score": 0.9285714285714286,
+      "support": 40.0
+    },
+    "accuracy": 0.9735294117647059,
+    "macro avg": {
+      "precision": 0.9503281546428753,
+      "recall": 0.9716666666666667,
+      "f1-score": 0.9602670302453854,
+      "support": 340.0
+    },
+    "weighted avg": {
+      "precision": 0.9747323941113131,
+      "recall": 0.9735294117647059,
+      "f1-score": 0.9738422868102978,
+      "support": 340.0
+    }
+  },
+  "target_best_threshold": 0.6121572852134705,
+  "target_best_f1": 0.9648241206025151,
+  "feature": {
+    "sr": 16000,
+    "n_fft": 512,
+    "frame_len": 400,
+    "frame_step": 320,
+    "n_mels": 40,
+    "n_frames": 49,
+    "fmin": 0.0,
+    "fmax": 8000.0
+  }
+}
